@@ -220,19 +220,37 @@ const TILE_SIZES = [
 /**
  * 產生單一層的板塊佈局
  * NOTE: 位置完全隨機，大小亂數，形狀多樣，旋轉 ±90°
+ * @param targetColors 目前的收集目標顏色，用來提升這些顏色出現的機率
  */
-export function generateLayer(layerIndex: number): Tile[] {
-  const tileCount = randInt(5, 8);
+export function generateLayer(layerIndex: number, targetColors?: number[]): Tile[] {
+  // 增加每層板塊數量到 10~16 個
+  const tileCount = randInt(10, 16);
   const tiles: Tile[] = [];
 
-  // 建立顏色池（每層 3~5 種顏色）
+  // 建立顏色池（每層 4~6 種顏色）
   const colorPool: number[] = [];
-  const colorCount = randInt(3, Math.min(5, COLOR_COUNT));
+  const colorCount = randInt(4, Math.min(6, COLOR_COUNT));
   const usedColors = new Set<number>();
-  while (usedColors.size < colorCount) {
-    usedColors.add(Math.floor(Math.random() * COLOR_COUNT));
+
+  // 將當前的收集目標顏色以高權重加入顏色池（提高出現機率）
+  if (targetColors && targetColors.length > 0) {
+    targetColors.forEach(c => {
+      if (!usedColors.has(c)) {
+        // 重複加入 3 次以增加權重
+        colorPool.push(c, c, c);
+        usedColors.add(c);
+      }
+    });
   }
-  usedColors.forEach((c) => colorPool.push(c));
+
+  // 隨機補滿其餘顏色
+  while (usedColors.size < colorCount) {
+    const c = Math.floor(Math.random() * COLOR_COUNT);
+    if (!usedColors.has(c)) {
+      usedColors.add(c);
+      colorPool.push(c);
+    }
+  }
 
   // 已放置板塊的中心點（鬆散碰撞檢測）
   const placedCenters: { cx: number; cy: number }[] = [];
@@ -287,11 +305,12 @@ export function generateLayer(layerIndex: number): Tile[] {
 
 /**
  * 產生初始遊戲盤面（3 層）
+ * @param targetColors 初始的收集目標顏色
  */
-export function generateInitialBoard(): { tiles: Tile[]; nextLayerIndex: number } {
+export function generateInitialBoard(targetColors: number[]): { tiles: Tile[]; nextLayerIndex: number } {
   const allTiles: Tile[] = [];
   for (let i = 0; i < 3; i++) {
-    allTiles.push(...generateLayer(i));
+    allTiles.push(...generateLayer(i, targetColors));
   }
   return { tiles: allTiles, nextLayerIndex: 3 };
 }

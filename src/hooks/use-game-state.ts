@@ -47,11 +47,13 @@ function createInitialState(): GameState {
 function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case 'START_GAME': {
-      const { tiles, nextLayerIndex } = generateInitialBoard();
+      const initialTargets = generateInitialTargets();
+      const targetColors = initialTargets.map((t) => t.colorIndex);
+      const { tiles, nextLayerIndex } = generateInitialBoard(targetColors);
       return {
         ...createInitialState(),
         tiles,
-        collectionTargets: generateInitialTargets(),
+        collectionTargets: initialTargets,
         nextLayerIndex,
         gameStatus: 'playing',
       };
@@ -198,7 +200,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         finalTiles.filter((t) => !t.emotions.every((e) => e.removed)).map((t) => t.layer)
       );
       if (activeLayers.size < 3 && gameStatus === 'playing') {
-        const newLayerTiles = generateLayer(nextLayerIdx);
+        const targetColors = newTargets.map((t) => t.colorIndex);
+        const newLayerTiles = generateLayer(nextLayerIdx, targetColors);
         finalTiles = [...finalTiles, ...newLayerTiles];
         nextLayerIdx++;
       }
