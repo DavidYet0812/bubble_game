@@ -30,8 +30,8 @@ function randFloat(min: number, max: number): number {
 }
 
 // ============================================================
-// 形狀生成器
-// NOTE: 每種形狀回傳 CSS 屬性和安全區域比例（用於情緒泡泡放置）
+// 形狀配置（固定形狀）
+// NOTE: 12 種固定形狀，大小由板塊生成時隨機決定
 // ============================================================
 
 interface ShapeConfig {
@@ -42,100 +42,95 @@ interface ShapeConfig {
 }
 
 /**
- * 產生有機 blob 形狀的 border-radius
- * 格式：a% b% c% d% / e% f% g% h%
+ * 12 種固定形狀定義
+ * NOTE: 形狀本身不隨機，只有板塊的寬高會隨機變化
  */
-function generateBlobRadius(): string {
-  const vals = Array.from({ length: 8 }, () => randInt(25, 75));
-  return `${vals[0]}% ${vals[1]}% ${vals[2]}% ${vals[3]}% / ${vals[4]}% ${vals[5]}% ${vals[6]}% ${vals[7]}%`;
-}
+const SHAPE_LIST: ShapeConfig[] = [
+  // === blob（固定的有機不規則形狀） ===
+  {
+    borderRadius: '42% 58% 35% 65% / 55% 38% 62% 45%',
+    safeZone: 0.60,
+  },
 
-/**
- * 所有可用的形狀生成器
- * NOTE: blob 出現概率較高（權重 3），其餘各 1
- */
-const SHAPE_GENERATORS: (() => ShapeConfig)[] = [
-  // === blob（有機不規則）— 權重 3 ===
-  () => ({ borderRadius: generateBlobRadius(), safeZone: 0.65 }),
-  () => ({ borderRadius: generateBlobRadius(), safeZone: 0.65 }),
-  () => ({ borderRadius: generateBlobRadius(), safeZone: 0.65 }),
-
-  // === 圓形 / 橢圓 ===
-  () => ({ borderRadius: '50%', safeZone: 0.58 }),
+  // === 圓形 ===
+  {
+    borderRadius: '50%',
+    safeZone: 0.58,
+  },
 
   // === 愛心 ===
-  () => ({
+  {
     borderRadius: '0',
     clipPath: 'polygon(50% 18%, 62% 3%, 78% 0%, 90% 8%, 98% 22%, 100% 38%, 92% 58%, 50% 95%, 8% 58%, 0% 38%, 2% 22%, 10% 8%, 22% 0%, 38% 3%)',
     safeZone: 0.45,
-  }),
+  },
 
-  // === 星形（五角，胖版確保有足夠面積放泡泡） ===
-  () => ({
+  // === 星形（五角，胖版） ===
+  {
     borderRadius: '0',
     clipPath: 'polygon(50% 0%, 63% 30%, 100% 35%, 75% 60%, 82% 98%, 50% 78%, 18% 98%, 25% 60%, 0% 35%, 37% 30%)',
     safeZone: 0.38,
-  }),
+  },
 
   // === 菱形 ===
-  () => ({
+  {
     borderRadius: '0',
     clipPath: 'polygon(50% 2%, 96% 50%, 50% 98%, 4% 50%)',
     safeZone: 0.42,
-  }),
+  },
 
   // === 六角形 ===
-  () => ({
+  {
     borderRadius: '0',
     clipPath: 'polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0% 50%)',
     safeZone: 0.58,
-  }),
+  },
 
-  // === 雲朵（用 border-radius 近似） ===
-  () => ({
+  // === 雲朵 ===
+  {
     borderRadius: '50% 50% 42% 58% / 48% 55% 45% 52%',
     safeZone: 0.55,
-  }),
+  },
 
-  // === 葉子（不對稱 border-radius） ===
-  () => ({
+  // === 葉子 ===
+  {
     borderRadius: '8% 75% 8% 75%',
     safeZone: 0.48,
-  }),
+  },
 
   // === 水滴 ===
-  () => ({
+  {
     borderRadius: '0',
     clipPath: 'polygon(50% 0%, 85% 35%, 95% 60%, 90% 80%, 72% 95%, 50% 100%, 28% 95%, 10% 80%, 5% 60%, 15% 35%)',
     safeZone: 0.45,
-  }),
+  },
 
   // === 十字 / 加號 ===
-  () => ({
+  {
     borderRadius: '0',
     clipPath: 'polygon(30% 0%, 70% 0%, 70% 30%, 100% 30%, 100% 70%, 70% 70%, 70% 100%, 30% 100%, 30% 70%, 0% 70%, 0% 30%, 30% 30%)',
     safeZone: 0.35,
-  }),
+  },
 
-  // === 蛋形（上窄下寬） ===
-  () => ({
+  // === 蛋形 ===
+  {
     borderRadius: '50% 50% 45% 45% / 60% 60% 40% 40%',
     safeZone: 0.52,
-  }),
+  },
 
   // === 花瓣 ===
-  () => ({
+  {
     borderRadius: '0',
     clipPath: 'polygon(50% 0%, 70% 15%, 95% 25%, 100% 50%, 95% 75%, 70% 85%, 50% 100%, 30% 85%, 5% 75%, 0% 50%, 5% 25%, 30% 15%)',
     safeZone: 0.50,
-  }),
+  },
 ];
 
 /**
- * 隨機選取一個形狀
+ * 隨機選取一個固定形狀
  */
 function pickRandomShape(): ShapeConfig {
-  return SHAPE_GENERATORS[Math.floor(Math.random() * SHAPE_GENERATORS.length)]();
+  return SHAPE_LIST[Math.floor(Math.random() * SHAPE_LIST.length)];
 }
 
 // ============================================================
