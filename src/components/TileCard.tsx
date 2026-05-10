@@ -25,61 +25,6 @@ const LAYER_STYLES: { bg: string; opacity: number; blur: number }[] = [
   { bg: 'rgba(220, 200, 240, 0.95)', opacity: 1, blur: 10 },
 ];
 
-/**
- * 碰撞偵測：沿旋轉弧線逐步檢查最後一個泡泡是否靠近其他板塊上的同色泡泡
- * NOTE: 只有碰到「相同顏色」的泡泡才會停止擺盪，否則自由晃動
- */
-function findCollisionAngle(
-  tile: TileType,
-  pivotLocalX: number,
-  pivotLocalY: number,
-  startAngle: number,
-  targetAngle: number,
-  allTiles: TileType[],
-  lastEmotionColor: number,
-): number {
-  const pivotAbsX = tile.x + pivotLocalX;
-  const pivotAbsY = tile.y + pivotLocalY;
-
-  // 收集其他板塊上所有「相同顏色」且未被移除的泡泡的絕對座標
-  const sameColorBubbles: { x: number; y: number }[] = [];
-  for (const t of allTiles) {
-    if (t.id === tile.id) continue;
-    // 需考慮該板塊本身的旋轉，計算泡泡的實際絕對座標
-    const tRad = (t.rotation * Math.PI) / 180;
-    const tCenterX = t.x + t.width / 2;
-    const tCenterY = t.y + t.height / 2;
-
-    for (const emo of t.emotions) {
-      if (emo.removed || emo.colorIndex !== lastEmotionColor) continue;
-      // 泡泡在板塊內的偏移（相對於板塊中心）
-      const localDx = emo.offsetX - t.width / 2;
-      const localDy = emo.offsetY - t.height / 2;
-      // 經過板塊旋轉後的絕對座標
-      const absX = tCenterX + localDx * Math.cos(tRad) - localDy * Math.sin(tRad);
-      const absY = tCenterY + localDx * Math.sin(tRad) + localDy * Math.cos(tRad);
-      sameColorBubbles.push({ x: absX, y: absY });
-    }
-  }
-
-  // 如果場上沒有同色泡泡，直接自由擺盪到目標角度
-  if (sameColorBubbles.length === 0) return targetAngle;
-
-  // 泡泡碰撞距離閾值（兩個泡泡半徑之和 + 一點緩衝）
-  const collisionDist = 18 * 2 + 6;
-
-  // 由於圖釘就是最後一個泡泡本身，它的位置不會隨旋轉改變
-  // 只需要一次性檢查它是否已在同色泡泡附近
-  for (const target of sameColorBubbles) {
-    if (Math.hypot(pivotAbsX - target.x, pivotAbsY - target.y) < collisionDist) {
-      // 已經靠近同色泡泡，停在目前的角度不擺盪
-      return startAngle;
-    }
-  }
-
-  return targetAngle;
-}
-
 const TileCard: React.FC<TileCardProps> = React.memo(
   ({ tile, allTiles, onEmotionClick, boardRotation = 0 }) => {
     // 檢查剩餘的泡泡數量與狀態
@@ -129,18 +74,7 @@ const TileCard: React.FC<TileCardProps> = React.memo(
       // atan2(-dx, dy) 計算出使中心位於圖釘正下方所需的「總旋轉角度」
       // 減去 boardRotation 得到板塊本身需要的旋轉角度
       const targetTotal = Math.atan2(-dx, dy) * (180 / Math.PI);
-      const targetRotation = targetTotal - boardRotation;
-
-      // 碰撞偵測：只有碰到同色泡泡才停止擺盪
-      gravityRotation = findCollisionAngle(
-        tile,
-        lastEmotion.offsetX,
-        lastEmotion.offsetY,
-        tile.rotation,
-        targetRotation,
-        allTiles,
-        lastEmotion.colorIndex,
-      );
+      gravityRotation = targetTotal - boardRotation;
     }
 
     // 計算掉落方向：將螢幕正下方 (0, 1) 轉換到 game-board 的本地座標系
