@@ -60,13 +60,24 @@ export function getTopLayer(tiles: Tile[]): number {
 }
 
 /**
- * 產生隨機收集目標
+ * 產生隨機收集目標（避免與現有目標顏色重複）
  * NOTE: 約 30% 機率成為獎勵目標（完成時額外 +5s）
+ * @param excludeColors 需要避免的顏色索引（來自其他現有目標）
  */
-export function generateTarget(): CollectionTarget {
+export function generateTarget(excludeColors: number[] = []): CollectionTarget {
+  let colorIndex: number;
+  let attempts = 0;
+  const excluded = new Set(excludeColors);
+
+  // 嘗試選擇一個不重複的顏色，最多嘗試 50 次
+  do {
+    colorIndex = Math.floor(Math.random() * COLOR_COUNT);
+    attempts++;
+  } while (excluded.has(colorIndex) && attempts < 50);
+
   return {
     id: `target_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-    colorIndex: Math.floor(Math.random() * COLOR_COUNT),
+    colorIndex,
     collected: 0,
     hasTimeBonus: Math.random() < 0.3,
   };

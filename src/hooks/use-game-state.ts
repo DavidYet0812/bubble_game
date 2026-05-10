@@ -142,8 +142,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
             newMessage = '⏰ 獎勵目標完成！額外 +5s';
           }
 
-          // 產生新的收集目標
-          const newTarget = generateTarget();
+          // 產生新的收集目標（排除其他目標已使用的顏色）
+          const otherColors = newTargets
+            .filter((_, i) => i !== matchIdx)
+            .map(t => t.colorIndex);
+          const newTarget = generateTarget(otherColors);
           newTargets[matchIdx] = newTarget;
 
           // 從臨時整理區自動收集
@@ -163,7 +166,10 @@ function gameReducer(state: GameState, action: GameAction): GameState {
             if (newTargets[completedIdx].hasTimeBonus) {
               newTime += TIME_BONUS;
             }
-            newTargets[completedIdx] = generateTarget();
+            const chainOtherColors = newTargets
+              .filter((_, i) => i !== completedIdx)
+              .map(t => t.colorIndex);
+            newTargets[completedIdx] = generateTarget(chainOtherColors);
             const recheck = autoCollectFromStaging(newStaging, newTargets);
             newStaging = recheck.newStaging;
             newTargets = recheck.newTargets;
@@ -194,7 +200,10 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           if (newTargets[completedIdx].hasTimeBonus) {
             newTime += TIME_BONUS;
           }
-          newTargets[completedIdx] = generateTarget();
+          const stageOtherColors = newTargets
+            .filter((_, i) => i !== completedIdx)
+            .map(t => t.colorIndex);
+          newTargets[completedIdx] = generateTarget(stageOtherColors);
           const recheck = autoCollectFromStaging(newStaging, newTargets);
           newStaging = recheck.newStaging;
           newTargets = recheck.newTargets;
