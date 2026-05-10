@@ -136,6 +136,12 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           newScore += SCORE_PER_TARGET;
           newTime += TIME_BONUS;
 
+          // 獎勵目標額外加時
+          if (newTargets[matchIdx].hasTimeBonus) {
+            newTime += TIME_BONUS;
+            newMessage = '⏰ 獎勵目標完成！額外 +5s';
+          }
+
           // 產生新的收集目標
           const newTarget = generateTarget();
           newTargets[matchIdx] = newTarget;

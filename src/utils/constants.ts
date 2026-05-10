@@ -31,10 +31,10 @@ export const MAX_VISIBLE_LAYERS = 3;
 export const TILES_PER_LAYER = { min: 4, max: 6 };
 
 /** 每個板塊上的情緒數量範圍 */
-export const EMOTIONS_PER_TILE = { min: 1, max: 3 };
+export const EMOTIONS_PER_TILE = { min: 4, max: 6 };
 
-/** 情緒泡泡半徑（像素）— 增大以提升點擊敏感度 */
-export const EMOTION_RADIUS = 22;
+/** 情緒泡泡半徑（像素） */
+export const EMOTION_RADIUS = 14;
 
 /** 板塊最小/最大尺寸 */
 export const TILE_SIZE = {

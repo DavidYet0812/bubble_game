@@ -198,12 +198,11 @@ function generateEmotions(
   colorPool: number[],
   safeZone: number
 ): Emotion[] {
-  // 根據板塊面積和安全區域決定情緒數量
+  // 根據板塊面積決定泡泡數量（min 4, max 6）
   const effectiveArea = tileW * tileH * safeZone * safeZone;
-  let maxEmotions = EMOTIONS_PER_TILE.max;
-  if (effectiveArea > 4000) maxEmotions = 3;
-  if (effectiveArea > 6000) maxEmotions = 4;
-  if (effectiveArea > 9000) maxEmotions = 5;
+  let maxEmotions = EMOTIONS_PER_TILE.min;
+  if (effectiveArea > 3000) maxEmotions = 5;
+  if (effectiveArea > 5000) maxEmotions = 6;
   const count = randInt(EMOTIONS_PER_TILE.min, maxEmotions);
   const positions = generateEmotionPositions(tileW, tileH, count, safeZone);
 
@@ -217,14 +216,14 @@ function generateEmotions(
 }
 
 // ============================================================
-// 板塊尺寸配置
+// 板塊尺寸配置（增大以容納更多泡泡）
 // ============================================================
 
 const TILE_SIZES = [
-  { minW: 65, maxW: 85, minH: 55, maxH: 70 },
-  { minW: 85, maxW: 110, minH: 65, maxH: 85 },
-  { minW: 100, maxW: 140, minH: 80, maxH: 110 },
-  { minW: 120, maxW: 160, minH: 90, maxH: 130 },
+  { minW: 80, maxW: 110, minH: 70, maxH: 90 },
+  { minW: 100, maxW: 130, minH: 80, maxH: 105 },
+  { minW: 120, maxW: 155, minH: 95, maxH: 125 },
+  { minW: 140, maxW: 175, minH: 110, maxH: 145 },
 ];
 
 // ============================================================

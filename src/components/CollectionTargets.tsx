@@ -1,6 +1,7 @@
 /**
  * 收集目標區域元件
  * NOTE: 顯示 3 個目標泡泡，帶有收集進度和顏色標示
+ *       獎勵目標會在左上角顯示 ⏰ 圖示
  */
 import React from 'react';
 import type { CollectionTarget } from '../types/game';
@@ -21,11 +22,37 @@ const CollectionTargets: React.FC<CollectionTargetsProps> = ({ targets }) => {
             key={target.id}
             className="target-bubble"
             style={{
+              position: 'relative',
               background: `linear-gradient(135deg, ${colorDef.color}66, ${colorDef.color}33)`,
               borderColor: `${colorDef.color}aa`,
               boxShadow: `0 2px 12px ${colorDef.glow}33`,
             }}
           >
+            {/* 獎勵目標提示符號 */}
+            {target.hasTimeBonus && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: -4,
+                  left: -4,
+                  width: 18,
+                  height: 18,
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #FFD93D, #FF8C00)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '10px',
+                  lineHeight: 1,
+                  boxShadow: '0 1px 4px rgba(255, 140, 0, 0.5)',
+                  zIndex: 2,
+                  animation: 'pulse-glow 1.5s ease-in-out infinite',
+                }}
+              >
+                ⏰
+              </div>
+            )}
+
             {/* 收集進度指示點 */}
             <div className="target-dots">
               {Array.from({ length: EMOTIONS_PER_TARGET }).map((_, i) => (

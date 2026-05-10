@@ -38,6 +38,8 @@ export interface CollectionTarget {
   colorIndex: number;
   /** 已收集數量（0~3），達到 3 為完成 */
   collected: number;
+  /** 是否為獎勵目標：完成時額外獲得 +5s 時間 */
+  hasTimeBonus?: boolean;
 }
 
 /** 暫存在臨時整理區的情緒 */

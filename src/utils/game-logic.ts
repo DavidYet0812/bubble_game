@@ -61,12 +61,14 @@ export function getTopLayer(tiles: Tile[]): number {
 
 /**
  * 產生隨機收集目標
+ * NOTE: 約 30% 機率成為獎勵目標（完成時額外 +5s）
  */
 export function generateTarget(): CollectionTarget {
   return {
     id: `target_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     colorIndex: Math.floor(Math.random() * COLOR_COUNT),
     collected: 0,
+    hasTimeBonus: Math.random() < 0.3,
   };
 }
 
