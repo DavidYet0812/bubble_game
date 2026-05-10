@@ -3,7 +3,7 @@
  * NOTE: 使用 useReducer 管理複雜的遊戲狀態轉換
  */
 import { useReducer, useCallback, useEffect, useRef } from 'react';
-import type { GameState, GameAction, CollectionTarget } from '../types/game';
+import type { GameState, GameAction } from '../types/game';
 import {
   GAME_DURATION,
   TIME_BONUS,
