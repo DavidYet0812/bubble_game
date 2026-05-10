@@ -240,28 +240,19 @@ export function generateLayer(layerIndex: number, targetColors?: number[]): Tile
   const tileCount = randInt(10, 16);
   const tiles: Tile[] = [];
 
-  // 建立顏色池（每層僅用 3~4 種顏色，讓同色泡泡更密集）
+  // 建立顏色池（只使用目標顏色，確保最高收集效率）
+  // NOTE: 盤面上的泡泡 100% 來自目標色，玩家點擊任何泡泡都能直接配對
   const colorPool: number[] = [];
-  const colorCount = randInt(3, Math.min(4, COLOR_COUNT));
-  const usedColors = new Set<number>();
 
-  // 將當前的收集目標顏色以極高權重加入顏色池
-  // NOTE: 每個目標色加 8 次，非目標色僅 1 次，確保盤面上目標色佔絕對多數
   if (targetColors && targetColors.length > 0) {
+    // 所有目標色均等加入，不加任何非目標色
     targetColors.forEach(c => {
-      if (!usedColors.has(c)) {
-        for (let i = 0; i < 8; i++) colorPool.push(c);
-        usedColors.add(c);
-      }
-    });
-  }
-
-  // 僅補 0~1 個非目標色，讓顏色更集中
-  while (usedColors.size < colorCount) {
-    const c = Math.floor(Math.random() * COLOR_COUNT);
-    if (!usedColors.has(c)) {
-      usedColors.add(c);
       colorPool.push(c);
+    });
+  } else {
+    // 無目標色時的備案（理論上不會發生）
+    for (let i = 0; i < Math.min(3, COLOR_COUNT); i++) {
+      colorPool.push(i);
     }
   }
 

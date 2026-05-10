@@ -151,7 +151,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           newStaging = autoResult.newStaging;
           newTargets = autoResult.newTargets;
 
-          // 檢查自動收集後是否有目標再次完成
+          // 檢查自動收集後是否有目標再次完成（連鎖反應）
           let bonusChecks = 0;
           while (bonusChecks < 10) {
             const completedIdx = newTargets.findIndex(
@@ -160,6 +160,9 @@ function gameReducer(state: GameState, action: GameAction): GameState {
             if (completedIdx === -1) break;
             newScore += SCORE_PER_TARGET;
             newTime += TIME_BONUS;
+            if (newTargets[completedIdx].hasTimeBonus) {
+              newTime += TIME_BONUS;
+            }
             newTargets[completedIdx] = generateTarget();
             const recheck = autoCollectFromStaging(newStaging, newTargets);
             newStaging = recheck.newStaging;
@@ -173,6 +176,30 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           id: emotion.id,
           colorIndex: emotion.colorIndex,
         });
+
+        // 放入整理區後，立即嘗試自動收集（整理區中同色泡泡可能已湊齊目標）
+        const autoResult = autoCollectFromStaging(newStaging, newTargets);
+        newStaging = autoResult.newStaging;
+        newTargets = autoResult.newTargets;
+
+        // 連鎖檢查：自動收集可能完成了某個目標
+        let bonusChecks = 0;
+        while (bonusChecks < 10) {
+          const completedIdx = newTargets.findIndex(
+            (t) => t.collected >= EMOTIONS_PER_TARGET
+          );
+          if (completedIdx === -1) break;
+          newScore += SCORE_PER_TARGET;
+          newTime += TIME_BONUS;
+          if (newTargets[completedIdx].hasTimeBonus) {
+            newTime += TIME_BONUS;
+          }
+          newTargets[completedIdx] = generateTarget();
+          const recheck = autoCollectFromStaging(newStaging, newTargets);
+          newStaging = recheck.newStaging;
+          newTargets = recheck.newTargets;
+          bonusChecks++;
+        }
 
         // 檢查整理區是否滿了
         if (newStaging.length >= newStagingCapacity) {
