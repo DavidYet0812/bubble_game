@@ -1,0 +1,723 @@
+/**
+ * 泡泡情緒收集遊戲 — 完整樣式
+ * NOTE: 夢幻粉彩風格，大量使用玻璃態和漸變效果還原原圖美術
+ */
+
+/* ===== 全域字體和變數 ===== */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+
+:root {
+  --bg-gradient: linear-gradient(135deg, #e0f7fa 0%, #f3e5f5 30%, #fce4ec 60%, #e8f5e9 100%);
+  --glass-bg: rgba(255, 255, 255, 0.25);
+  --glass-border: rgba(255, 255, 255, 0.45);
+  --text-primary: #2d3436;
+  --text-secondary: #636e72;
+  --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.08);
+  --shadow-glow: 0 0 20px rgba(129, 212, 250, 0.3);
+  --radius-lg: 20px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Noto Sans TC', -apple-system, sans-serif;
+  background: var(--bg-gradient);
+  min-height: 100vh;
+  overflow: hidden;
+  color: var(--text-primary);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+#root {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ===== 應用容器 ===== */
+.app-container {
+  width: 100%;
+  max-width: 420px;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-gradient);
+}
+
+/* ===== 背景裝飾 ===== */
+.bg-decoration {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.4;
+  animation: orbFloat 8s ease-in-out infinite;
+}
+
+.orb-1 {
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, #81ecec, transparent);
+  top: -40px;
+  left: -60px;
+  animation-delay: 0s;
+}
+
+.orb-2 {
+  width: 250px;
+  height: 250px;
+  background: radial-gradient(circle, #dfe6e9, #fab1a0);
+  bottom: 10%;
+  right: -80px;
+  animation-delay: -3s;
+}
+
+.orb-3 {
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle, #a29bfe, transparent);
+  top: 50%;
+  left: 30%;
+  animation-delay: -5s;
+}
+
+@keyframes orbFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(20px, -15px) scale(1.05); }
+  66% { transform: translate(-10px, 10px) scale(0.95); }
+}
+
+/* ===== 遊戲容器 ===== */
+.game-container {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100vh;
+  padding: 12px 16px 8px;
+  gap: 8px;
+}
+
+/* ===== 頂部資訊列 ===== */
+.game-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-soft);
+}
+
+.timer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  transition: color 0.3s;
+}
+
+.timer.low {
+  color: #e17055;
+}
+
+.timer.critical {
+  color: #d63031;
+  animation: timerPulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes timerPulse {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0.7; transform: scale(1.05); }
+}
+
+.timer-icon {
+  font-size: 18px;
+}
+
+.score-display {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.score-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.score-value {
+  font-size: 22px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ===== 收集目標 ===== */
+.collection-targets {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  padding: 6px 0;
+}
+
+.target-bubble {
+  width: 80px;
+  height: 52px;
+  border-radius: 26px;
+  border: 2px solid;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  transition: all 0.3s ease;
+  position: relative;
+  backdrop-filter: blur(4px);
+}
+
+.target-bubble.complete {
+  animation: targetComplete 0.5s ease;
+}
+
+@keyframes targetComplete {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.target-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.target-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.target-dot.filled {
+  animation: dotFill 0.3s ease;
+}
+
+@keyframes dotFill {
+  0% { transform: scale(0); }
+  60% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+.target-face {
+  font-size: 10px;
+  line-height: 1;
+}
+
+/* ===== 臨時整理區 ===== */
+.staging-area {
+  width: 100%;
+  padding: 6px 12px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  transition: all 0.3s;
+}
+
+.staging-area.warning {
+  border-color: #fdcb6e;
+  box-shadow: 0 0 12px rgba(253, 203, 110, 0.3);
+}
+
+.staging-area.danger {
+  border-color: #e17055;
+  box-shadow: 0 0 12px rgba(225, 112, 85, 0.4);
+  animation: dangerShake 0.4s ease;
+}
+
+@keyframes dangerShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+.staging-slots {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.staging-slot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.staging-slot.filled {
+  animation: slotFill 0.3s ease;
+}
+
+@keyframes slotFill {
+  0% { transform: scale(0) rotate(180deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.staging-label {
+  text-align: center;
+  font-size: 10px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.staging-face {
+  pointer-events: none;
+}
+
+/* ===== 遊戲盤面 ===== */
+.game-board-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 0;
+  min-height: 0;
+}
+
+.game-board {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(200, 230, 255, 0.1) 50%,
+    transparent 100%
+  );
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: var(--shadow-glow), inset 0 0 40px rgba(255, 255, 255, 0.1);
+  overflow: visible;
+}
+
+/* ===== 板塊卡片 ===== */
+.tile-card {
+  transition: opacity 0.4s ease, transform 0.3s ease;
+}
+
+.tile-card:hover {
+  transform: translateY(-1px);
+}
+
+/* ===== 情緒泡泡 ===== */
+.emotion-bubble {
+  transition: all 0.2s ease;
+  will-change: transform, opacity;
+}
+
+.emotion-bubble.exposed {
+  animation: bubbleBreath 2.5s ease-in-out infinite;
+}
+
+.emotion-bubble.exposed:hover {
+  transform: scale(1.2) !important;
+  filter: brightness(1.1);
+}
+
+.emotion-bubble.exposed:active {
+  transform: scale(0.9) !important;
+}
+
+@keyframes bubbleBreath {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+
+.emotion-face {
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  filter: drop-shadow(0 0 1px rgba(0,0,0,0.1));
+}
+
+/* ===== 底部工具列 ===== */
+.game-footer {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 12px;
+}
+
+.shuffle-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  background: linear-gradient(135deg, rgba(108, 92, 231, 0.2), rgba(162, 155, 254, 0.2));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(162, 155, 254, 0.4);
+  border-radius: 28px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #6c5ce7;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(108, 92, 231, 0.15);
+  position: relative;
+}
+
+.shuffle-btn:hover:not(.disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(108, 92, 231, 0.25);
+  background: linear-gradient(135deg, rgba(108, 92, 231, 0.3), rgba(162, 155, 254, 0.3));
+}
+
+.shuffle-btn:active:not(.disabled) {
+  transform: translateY(0);
+}
+
+.shuffle-btn.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: grayscale(0.5);
+}
+
+.shuffle-icon {
+  font-size: 18px;
+}
+
+.shuffle-count {
+  background: rgba(108, 92, 231, 0.2);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ===== 訊息提示 ===== */
+.game-message {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 100;
+  animation: messageIn 0.4s ease, messageOut 0.4s ease 2s forwards;
+}
+
+.message-content {
+  padding: 16px 28px;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(12px);
+  border-radius: var(--radius-md);
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes messageIn {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes messageOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* ===== 開始畫面 ===== */
+.start-screen {
+  width: 100%;
+  max-width: 420px;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.start-bubbles-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.floating-bubble {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.3;
+  animation: floatUp linear infinite;
+}
+
+.bubble-0 { width: 40px; height: 40px; background: #a8e6cf; left: 10%; animation-duration: 7s; animation-delay: 0s; }
+.bubble-1 { width: 30px; height: 30px; background: #ffb7b2; left: 25%; animation-duration: 9s; animation-delay: -2s; }
+.bubble-2 { width: 50px; height: 50px; background: #87ceeb; left: 45%; animation-duration: 8s; animation-delay: -4s; }
+.bubble-3 { width: 25px; height: 25px; background: #b19cd9; left: 65%; animation-duration: 10s; animation-delay: -1s; }
+.bubble-4 { width: 35px; height: 35px; background: #ffeaa7; left: 80%; animation-duration: 7.5s; animation-delay: -3s; }
+.bubble-5 { width: 45px; height: 45px; background: #ffb6c1; left: 15%; animation-duration: 11s; animation-delay: -5s; }
+.bubble-6 { width: 28px; height: 28px; background: #81ecec; left: 55%; animation-duration: 8.5s; animation-delay: -6s; }
+.bubble-7 { width: 38px; height: 38px; background: #ff7675; left: 35%; animation-duration: 9.5s; animation-delay: -7s; }
+.bubble-8 { width: 20px; height: 20px; background: #fdcb6e; left: 75%; animation-duration: 6.5s; animation-delay: -1.5s; }
+.bubble-9 { width: 32px; height: 32px; background: #dfe6e9; left: 90%; animation-duration: 10.5s; animation-delay: -3.5s; }
+.bubble-10 { width: 42px; height: 42px; background: #a29bfe; left: 5%; animation-duration: 8s; animation-delay: -8s; }
+.bubble-11 { width: 26px; height: 26px; background: #fab1a0; left: 50%; animation-duration: 7s; animation-delay: -2.5s; }
+
+@keyframes floatUp {
+  0% {
+    transform: translateY(100vh) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.3;
+  }
+  90% {
+    opacity: 0.3;
+  }
+  100% {
+    transform: translateY(-100px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.start-content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 32px 24px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  max-width: 340px;
+  width: 90%;
+}
+
+.start-icon {
+  font-size: 64px;
+  margin-bottom: 8px;
+  animation: iconFloat 3s ease-in-out infinite;
+}
+
+@keyframes iconFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.start-title {
+  font-size: 32px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #6c5ce7, #fd79a8, #fdcb6e);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 4px;
+}
+
+.start-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+}
+
+.start-rules {
+  text-align: left;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rule-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.rule-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.start-btn {
+  padding: 14px 48px;
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+  border: none;
+  border-radius: 28px;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(108, 92, 231, 0.35);
+  transition: all 0.3s ease;
+}
+
+.start-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(108, 92, 231, 0.45);
+}
+
+.start-btn:active {
+  transform: translateY(0);
+}
+
+/* ===== 遊戲結束畫面 ===== */
+.game-over-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.game-over-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 36px 40px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  animation: cardIn 0.4s ease;
+  max-width: 320px;
+  width: 85%;
+}
+
+@keyframes cardIn {
+  from { opacity: 0; transform: scale(0.85) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.game-over-icon {
+  font-size: 56px;
+  margin-bottom: 8px;
+}
+
+.game-over-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+}
+
+.game-over-score {
+  margin-bottom: 24px;
+}
+
+.game-over-score-label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.game-over-score-value {
+  font-size: 42px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #6c5ce7, #fd79a8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.game-over-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.game-over-btn {
+  padding: 14px 44px;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+  border: none;
+  border-radius: 28px;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(108, 92, 231, 0.35);
+  transition: all 0.3s ease;
+}
+
+.game-over-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(108, 92, 231, 0.45);
+}
+
+/* ===== 響應式調整 ===== */
+@media (max-height: 700px) {
+  .game-container {
+    padding: 6px 12px 4px;
+    gap: 4px;
+  }
+  .game-header {
+    padding: 6px 10px;
+  }
+  .timer { font-size: 17px; }
+  .score-value { font-size: 18px; }
+  .target-bubble { width: 68px; height: 44px; }
+  .staging-slot { width: 24px; height: 24px; }
+  .game-footer { padding: 2px 0 8px; }
+}
+
+@media (min-width: 421px) {
+  .app-container,
+  .start-screen {
+    border-left: 1px solid rgba(255, 255, 255, 0.3);
+    border-right: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.05);
+  }
+}
