@@ -42,7 +42,8 @@ const TileCard: React.FC<TileCardProps> = React.memo(
           width: tile.width,
           height: tile.height,
           zIndex: tile.layer * 10,
-          transform: `rotate(${tile.rotation}deg)`,
+          // 版塊自身的初始旋轉 + 拖曳帶來的全域旋轉
+          transform: `rotate(${tile.rotation + boardRotation}deg)`,
           opacity: layerStyle.opacity,
           transition: 'opacity 0.4s ease',
           overflow: 'visible',

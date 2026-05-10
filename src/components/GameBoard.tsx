@@ -16,7 +16,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ tiles, onEmotionClick }) => {
   // 按層級排序渲染（底層先渲染）
   const sortedTiles = [...tiles].sort((a, b) => a.layer - b.layer);
 
-  const [boardRotation, setBoardRotation] = React.useState(0);
+  const [globalRotation, setGlobalRotation] = React.useState(0);
   const isDragging = React.useRef(false);
   const lastMousePos = React.useRef<{ x: number; y: number } | null>(null);
   const boardRef = React.useRef<HTMLDivElement>(null);
@@ -56,7 +56,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ tiles, onEmotionClick }) => {
     if (deltaAngle > 180) deltaAngle -= 360;
     if (deltaAngle < -180) deltaAngle += 360;
 
-    setBoardRotation((prev) => prev + deltaAngle);
+    setGlobalRotation((prev) => prev + deltaAngle);
     lastMousePos.current = { x: currentX, y: currentY };
   };
 
@@ -78,8 +78,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ tiles, onEmotionClick }) => {
           width: BOARD_WIDTH,
           height: BOARD_HEIGHT,
           position: 'relative',
-          transform: `rotate(${boardRotation}deg)`,
-          transformOrigin: 'center center',
+          // 盤面本身不再旋轉
           cursor: isDragging.current ? 'grabbing' : 'grab',
           touchAction: 'none', // 防止移動端滾動干擾
         }}
@@ -94,7 +93,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ tiles, onEmotionClick }) => {
             tile={tile}
             allTiles={tiles}
             onEmotionClick={onEmotionClick}
-            boardRotation={boardRotation}
+            boardRotation={globalRotation}
           />
         ))}
       </div>
