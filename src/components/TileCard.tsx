@@ -26,8 +26,8 @@ const LAYER_STYLES: { bg: string; opacity: number; blur: number }[] = [
 ];
 
 /**
- * 碰撞偵測：沿著旋轉弧線逐步檢查，找到第一個碰撞角度
- * NOTE: 使用邊界圓近似其他板塊，檢測旋轉板塊的四個角是否觸碰
+ * 碰撞偵測：沿旋轉弧線逐步檢查最後一個泡泡是否靠近其他板塊上的同色泡泡
+ * NOTE: 只有碰到「相同顏色」的泡泡才會停止擺盪，否則自由晃動
  */
 function findCollisionAngle(
   tile: TileType,
@@ -36,47 +36,44 @@ function findCollisionAngle(
   startAngle: number,
   targetAngle: number,
   allTiles: TileType[],
+  lastEmotionColor: number,
 ): number {
   const pivotAbsX = tile.x + pivotLocalX;
   const pivotAbsY = tile.y + pivotLocalY;
 
-  // 板塊四個角相對於旋轉中心（圖釘）的偏移量
-  const corners = [
-    { dx: -pivotLocalX, dy: -pivotLocalY },
-    { dx: tile.width - pivotLocalX, dy: -pivotLocalY },
-    { dx: -pivotLocalX, dy: tile.height - pivotLocalY },
-    { dx: tile.width - pivotLocalX, dy: tile.height - pivotLocalY },
-  ];
+  // 收集其他板塊上所有「相同顏色」且未被移除的泡泡的絕對座標
+  const sameColorBubbles: { x: number; y: number }[] = [];
+  for (const t of allTiles) {
+    if (t.id === tile.id) continue;
+    // 需考慮該板塊本身的旋轉，計算泡泡的實際絕對座標
+    const tRad = (t.rotation * Math.PI) / 180;
+    const tCenterX = t.x + t.width / 2;
+    const tCenterY = t.y + t.height / 2;
 
-  // 將其他仍有泡泡的板塊近似為邊界圓
-  const obstacles = allTiles
-    .filter((t) => t.id !== tile.id && t.emotions.some((e) => !e.removed))
-    .map((t) => ({
-      cx: t.x + t.width / 2,
-      cy: t.y + t.height / 2,
-      r: Math.hypot(t.width, t.height) / 2 * 0.42,
-    }));
+    for (const emo of t.emotions) {
+      if (emo.removed || emo.colorIndex !== lastEmotionColor) continue;
+      // 泡泡在板塊內的偏移（相對於板塊中心）
+      const localDx = emo.offsetX - t.width / 2;
+      const localDy = emo.offsetY - t.height / 2;
+      // 經過板塊旋轉後的絕對座標
+      const absX = tCenterX + localDx * Math.cos(tRad) - localDy * Math.sin(tRad);
+      const absY = tCenterY + localDx * Math.sin(tRad) + localDy * Math.cos(tRad);
+      sameColorBubbles.push({ x: absX, y: absY });
+    }
+  }
 
-  if (obstacles.length === 0) return targetAngle;
+  // 如果場上沒有同色泡泡，直接自由擺盪到目標角度
+  if (sameColorBubbles.length === 0) return targetAngle;
 
-  const totalDelta = targetAngle - startAngle;
-  // 每 3 度檢測一次
-  const stepCount = Math.max(1, Math.ceil(Math.abs(totalDelta) / 3));
+  // 泡泡碰撞距離閾值（兩個泡泡半徑之和 + 一點緩衝）
+  const collisionDist = 18 * 2 + 6;
 
-  for (let i = 1; i <= stepCount; i++) {
-    const angle = startAngle + (totalDelta * i) / stepCount;
-    const rad = (angle * Math.PI) / 180;
-
-    for (const corner of corners) {
-      const absX = pivotAbsX + corner.dx * Math.cos(rad) - corner.dy * Math.sin(rad);
-      const absY = pivotAbsY + corner.dx * Math.sin(rad) + corner.dy * Math.cos(rad);
-
-      for (const obs of obstacles) {
-        if (Math.hypot(absX - obs.cx, absY - obs.cy) < obs.r) {
-          // 碰撞！回傳前一步的安全角度
-          return startAngle + (totalDelta * (i - 1)) / stepCount;
-        }
-      }
+  // 由於圖釘就是最後一個泡泡本身，它的位置不會隨旋轉改變
+  // 只需要一次性檢查它是否已在同色泡泡附近
+  for (const target of sameColorBubbles) {
+    if (Math.hypot(pivotAbsX - target.x, pivotAbsY - target.y) < collisionDist) {
+      // 已經靠近同色泡泡，停在目前的角度不擺盪
+      return startAngle;
     }
   }
 
@@ -134,7 +131,7 @@ const TileCard: React.FC<TileCardProps> = React.memo(
       const targetTotal = Math.atan2(-dx, dy) * (180 / Math.PI);
       const targetRotation = targetTotal - boardRotation;
 
-      // 碰撞偵測：如果旋轉途中碰到其他板塊，就停在碰撞的位置
+      // 碰撞偵測：只有碰到同色泡泡才停止擺盪
       gravityRotation = findCollisionAngle(
         tile,
         lastEmotion.offsetX,
@@ -142,6 +139,7 @@ const TileCard: React.FC<TileCardProps> = React.memo(
         tile.rotation,
         targetRotation,
         allTiles,
+        lastEmotion.colorIndex,
       );
     }
 
