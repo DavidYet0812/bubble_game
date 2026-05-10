@@ -21,6 +21,7 @@ import {
   generateTarget,
   generateInitialTargets,
   getTopLayer,
+  getAvailableBoardColors,
 } from '../utils/game-logic';
 
 /** 初始狀態 */
@@ -142,11 +143,12 @@ function gameReducer(state: GameState, action: GameAction): GameState {
             newMessage = '⏰ 獎勵目標完成！額外 +5s';
           }
 
-          // 產生新的收集目標（排除其他目標已使用的顏色）
+          // 產生新的收集目標（排除其他目標已使用的顏色，並優先挑選盤面上現有顏色）
           const otherColors = newTargets
             .filter((_, i) => i !== matchIdx)
             .map(t => t.colorIndex);
-          const newTarget = generateTarget(otherColors);
+          const availableColors = getAvailableBoardColors(newTiles);
+          const newTarget = generateTarget(otherColors, availableColors);
           newTargets[matchIdx] = newTarget;
 
           // 從臨時整理區自動收集
@@ -169,7 +171,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
             const chainOtherColors = newTargets
               .filter((_, i) => i !== completedIdx)
               .map(t => t.colorIndex);
-            newTargets[completedIdx] = generateTarget(chainOtherColors);
+            const chainAvailableColors = getAvailableBoardColors(newTiles);
+            newTargets[completedIdx] = generateTarget(chainOtherColors, chainAvailableColors);
             const recheck = autoCollectFromStaging(newStaging, newTargets);
             newStaging = recheck.newStaging;
             newTargets = recheck.newTargets;
@@ -203,7 +206,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           const stageOtherColors = newTargets
             .filter((_, i) => i !== completedIdx)
             .map(t => t.colorIndex);
-          newTargets[completedIdx] = generateTarget(stageOtherColors);
+          const stageAvailableColors = getAvailableBoardColors(newTiles);
+          newTargets[completedIdx] = generateTarget(stageOtherColors, stageAvailableColors);
           const recheck = autoCollectFromStaging(newStaging, newTargets);
           newStaging = recheck.newStaging;
           newTargets = recheck.newTargets;

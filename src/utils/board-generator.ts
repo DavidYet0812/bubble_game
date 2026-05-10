@@ -240,20 +240,33 @@ export function generateLayer(layerIndex: number, targetColors?: number[]): Tile
   const tileCount = randInt(10, 16);
   const tiles: Tile[] = [];
 
-  // 建立顏色池（只使用目標顏色，確保最高收集效率）
-  // NOTE: 盤面上的泡泡 100% 來自目標色，玩家點擊任何泡泡都能直接配對
+  // 建立顏色池：目標色佔絕大多數，並加入 1~2 種非目標色作為備用
+  // NOTE: 必須有非目標色存在，這樣當目標完成換新目標時，盤面上才有現成顏色可以成為新目標
   const colorPool: number[] = [];
+  const usedColors = new Set<number>();
 
   if (targetColors && targetColors.length > 0) {
-    // 所有目標色均等加入，不加任何非目標色
     targetColors.forEach(c => {
-      colorPool.push(c);
+      if (!usedColors.has(c)) {
+        // 目標色權重為 6，確保佔多數
+        for (let i = 0; i < 6; i++) colorPool.push(c);
+        usedColors.add(c);
+      }
     });
-  } else {
-    // 無目標色時的備案（理論上不會發生）
-    for (let i = 0; i < Math.min(3, COLOR_COUNT); i++) {
-      colorPool.push(i);
+  }
+
+  // 隨機加入 1~2 種非目標色（各加 2 次），作為未來的預備目標
+  const extraCount = randInt(1, 2);
+  let extraAdded = 0;
+  let attempts = 0;
+  while (extraAdded < extraCount && attempts < 20) {
+    const c = Math.floor(Math.random() * COLOR_COUNT);
+    if (!usedColors.has(c)) {
+      usedColors.add(c);
+      colorPool.push(c, c); // 非目標色權重為 2
+      extraAdded++;
     }
+    attempts++;
   }
 
   // 已放置板塊的中心點（鬆散碰撞檢測）

@@ -60,20 +60,56 @@ export function getTopLayer(tiles: Tile[]): number {
 }
 
 /**
- * 產生隨機收集目標（避免與現有目標顏色重複）
+ * 取得目前盤面上可見且未被收集的泡泡顏色
+ * @param tiles 所有板塊
+ * @returns 顏色索引陣列
+ */
+export function getAvailableBoardColors(tiles: Tile[]): number[] {
+  const accessibleColors = new Set<number>();
+  const allColors = new Set<number>();
+
+  for (const tile of tiles) {
+    for (const emo of tile.emotions) {
+      if (!emo.removed) {
+        allColors.add(emo.colorIndex);
+        if (!isEmotionCovered(emo, tile, tiles)) {
+          accessibleColors.add(emo.colorIndex);
+        }
+      }
+    }
+  }
+
+  // 優先回傳目前沒被遮擋的顏色，若無則回傳所有未移除的顏色
+  if (accessibleColors.size > 0) return Array.from(accessibleColors);
+  return Array.from(allColors);
+}
+
+/**
+ * 產生隨機收集目標（優先從現有板塊挑選，並避免與現有目標顏色重複）
  * NOTE: 約 30% 機率成為獎勵目標（完成時額外 +5s）
  * @param excludeColors 需要避免的顏色索引（來自其他現有目標）
+ * @param preferredColors 優先選擇的顏色索引（來自目前盤面可見的泡泡）
  */
-export function generateTarget(excludeColors: number[] = []): CollectionTarget {
+export function generateTarget(
+  excludeColors: number[] = [],
+  preferredColors: number[] = []
+): CollectionTarget {
   let colorIndex: number;
   let attempts = 0;
   const excluded = new Set(excludeColors);
 
-  // 嘗試選擇一個不重複的顏色，最多嘗試 50 次
-  do {
-    colorIndex = Math.floor(Math.random() * COLOR_COUNT);
-    attempts++;
-  } while (excluded.has(colorIndex) && attempts < 50);
+  // 首先嘗試從 preferredColors 中挑選不重複的顏色
+  const validPreferred = preferredColors.filter((c) => !excluded.has(c));
+
+  if (validPreferred.length > 0) {
+    colorIndex = validPreferred[Math.floor(Math.random() * validPreferred.length)];
+  } else {
+    // 否則隨機挑選（最多嘗試 50 次避免無限迴圈）
+    do {
+      colorIndex = Math.floor(Math.random() * COLOR_COUNT);
+      attempts++;
+    } while (excluded.has(colorIndex) && attempts < 50);
+  }
 
   return {
     id: `target_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
