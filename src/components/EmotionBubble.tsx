@@ -76,10 +76,11 @@ const EmotionBubble: React.FC<EmotionBubbleProps> = React.memo(
           borderRadius: '50%',
           cursor: covered ? 'default' : 'pointer',
           opacity: covered ? 0.35 : 1,
+          '--counter-rot': `${-ownerTile.rotation}deg`,
           transition: 'all 0.25s ease',
           zIndex: covered ? 0 : 1,
           overflow: 'hidden',
-        }}
+        } as React.CSSProperties}
         onClick={handleClick}
       >
         {/* 光澤高光 */}

@@ -157,20 +157,38 @@ function generateEmotionPositions(
   const marginY = tileH * (1 - safeZone) / 2;
   const minDist = EMOTION_RADIUS * 2 + 3;
 
+  const cx = tileW / 2;
+  const cy = tileH / 2;
+  const a = (tileW * safeZone) / 2;
+  const b = (tileH * safeZone) / 2;
+
   for (let i = 0; i < count; i++) {
     let attempts = 0;
     let ox: number, oy: number;
+    let isValid = false;
+
     do {
       ox = marginX + Math.random() * (tileW - marginX * 2);
       oy = marginY + Math.random() * (tileH - marginY * 2);
       attempts++;
-    } while (
-      attempts < 100 &&
-      positions.some(
+
+      // 確保在安全橢圓內
+      const dx = ox - cx;
+      const dy = oy - cy;
+      const inEllipse = (dx * dx) / (a * a) + (dy * dy) / (b * b) <= 1;
+
+      // 確保不重疊
+      const noOverlap = !positions.some(
         (p) => Math.hypot(p.offsetX - ox, p.offsetY - oy) < minDist
-      )
-    );
-    positions.push({ offsetX: ox, offsetY: oy });
+      );
+
+      isValid = inEllipse && noOverlap;
+    } while (!isValid && attempts < 200);
+
+    if (isValid || attempts >= 200) {
+      // 即使超過嘗試次數，也強制放入最後一個點（通常會被擠在邊緣）
+      positions.push({ offsetX: ox, offsetY: oy });
+    }
   }
   return positions;
 }
