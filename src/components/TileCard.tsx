@@ -27,14 +27,43 @@ const LAYER_STYLES: { bg: string; opacity: number; blur: number }[] = [
 
 const TileCard: React.FC<TileCardProps> = React.memo(
   ({ tile, allTiles, onEmotionClick, boardRotation = 0 }) => {
-    if (tile.emotions.every((e) => e.removed)) return null;
+    // 檢查剩餘的泡泡數量與狀態
+    const activeEmotions = tile.emotions.filter((e) => !e.removed);
+    const activeCount = activeEmotions.length;
+
+    // 當 activeCount 變為 0，且元件仍在渲染時，表示正在掉落
+    const isFalling = activeCount === 0;
+
+    // 如果沒有情緒且沒有在掉落（可能在第一次渲染就是空的，通常不會發生），或者掉落動畫已結束
+    const [shouldUnmount, setShouldUnmount] = React.useState(false);
+
+    React.useEffect(() => {
+      if (isFalling) {
+        // 設定定時器，在掉落動畫結束後解除掛載 (動畫設定 0.8s)
+        const timer = setTimeout(() => {
+          setShouldUnmount(true);
+        }, 800);
+        return () => clearTimeout(timer);
+      }
+    }, [isFalling]);
+
+    if (shouldUnmount) return null;
 
     const layerStyle = LAYER_STYLES[tile.layer % LAYER_STYLES.length];
     const hasClipPath = !!tile.clipPath;
 
+    // 如果只剩下一個泡泡，將旋轉中心設定為該泡泡的中心點
+    let customOrigin = 'center center';
+    if (activeCount === 1) {
+      const lastEmotion = activeEmotions[0];
+      const percentX = (lastEmotion.offsetX / tile.width) * 100;
+      const percentY = (lastEmotion.offsetY / tile.height) * 100;
+      customOrigin = `${percentX}% ${percentY}%`;
+    }
+
     return (
       <div
-        className="tile-card"
+        className={`tile-card ${isFalling ? 'falling' : ''}`}
         style={{
           position: 'absolute',
           left: tile.x,
@@ -42,11 +71,18 @@ const TileCard: React.FC<TileCardProps> = React.memo(
           width: tile.width,
           height: tile.height,
           zIndex: tile.layer * 10,
-          // 版塊自身的初始旋轉 + 拖曳帶來的全域旋轉
-          transform: `rotate(${tile.rotation + boardRotation}deg)`,
-          opacity: layerStyle.opacity,
-          transition: 'opacity 0.4s ease',
+          transform: `rotate(${tile.rotation}deg)`,
+          transformOrigin: customOrigin,
+          opacity: isFalling ? 0 : layerStyle.opacity,
+          transition: isFalling 
+            ? 'transform 0.8s cubic-bezier(0.55, 0.085, 0.68, 0.53), opacity 0.6s ease 0.2s'
+            : 'opacity 0.4s ease',
           overflow: 'visible',
+          // 掉落動畫：往下掉並旋轉
+          ...(isFalling && {
+            transform: `translateY(300px) rotate(${tile.rotation + (Math.random() > 0.5 ? 45 : -45)}deg) scale(0.8)`,
+            pointerEvents: 'none',
+          }),
           // clip-path 形狀使用 filter: drop-shadow 代替 box-shadow
           filter: hasClipPath
             ? 'drop-shadow(0 3px 8px rgba(0,0,0,0.06)) drop-shadow(0 1px 2px rgba(0,0,0,0.04))'
@@ -93,7 +129,7 @@ const TileCard: React.FC<TileCardProps> = React.memo(
           <EmotionBubble
             key={emotion.id}
             emotion={emotion}
-            ownerTile={tile}
+            ownerTile={{...tile, rotation: isFalling ? tile.rotation : tile.rotation}} // 確保 props 更新
             allTiles={allTiles}
             onClick={onEmotionClick}
             boardRotation={boardRotation}
