@@ -25,21 +25,80 @@ const LAYER_STYLES: { bg: string; opacity: number; blur: number }[] = [
   { bg: 'rgba(220, 200, 240, 0.95)', opacity: 1, blur: 10 },
 ];
 
+/**
+ * 碰撞偵測：沿著旋轉弧線逐步檢查，找到第一個碰撞角度
+ * NOTE: 使用邊界圓近似其他板塊，檢測旋轉板塊的四個角是否觸碰
+ */
+function findCollisionAngle(
+  tile: TileType,
+  pivotLocalX: number,
+  pivotLocalY: number,
+  startAngle: number,
+  targetAngle: number,
+  allTiles: TileType[],
+): number {
+  const pivotAbsX = tile.x + pivotLocalX;
+  const pivotAbsY = tile.y + pivotLocalY;
+
+  // 板塊四個角相對於旋轉中心（圖釘）的偏移量
+  const corners = [
+    { dx: -pivotLocalX, dy: -pivotLocalY },
+    { dx: tile.width - pivotLocalX, dy: -pivotLocalY },
+    { dx: -pivotLocalX, dy: tile.height - pivotLocalY },
+    { dx: tile.width - pivotLocalX, dy: tile.height - pivotLocalY },
+  ];
+
+  // 將其他仍有泡泡的板塊近似為邊界圓
+  const obstacles = allTiles
+    .filter((t) => t.id !== tile.id && t.emotions.some((e) => !e.removed))
+    .map((t) => ({
+      cx: t.x + t.width / 2,
+      cy: t.y + t.height / 2,
+      r: Math.hypot(t.width, t.height) / 2 * 0.42,
+    }));
+
+  if (obstacles.length === 0) return targetAngle;
+
+  const totalDelta = targetAngle - startAngle;
+  // 每 3 度檢測一次
+  const stepCount = Math.max(1, Math.ceil(Math.abs(totalDelta) / 3));
+
+  for (let i = 1; i <= stepCount; i++) {
+    const angle = startAngle + (totalDelta * i) / stepCount;
+    const rad = (angle * Math.PI) / 180;
+
+    for (const corner of corners) {
+      const absX = pivotAbsX + corner.dx * Math.cos(rad) - corner.dy * Math.sin(rad);
+      const absY = pivotAbsY + corner.dx * Math.sin(rad) + corner.dy * Math.cos(rad);
+
+      for (const obs of obstacles) {
+        if (Math.hypot(absX - obs.cx, absY - obs.cy) < obs.r) {
+          // 碰撞！回傳前一步的安全角度
+          return startAngle + (totalDelta * (i - 1)) / stepCount;
+        }
+      }
+    }
+  }
+
+  return targetAngle;
+}
+
 const TileCard: React.FC<TileCardProps> = React.memo(
   ({ tile, allTiles, onEmotionClick, boardRotation = 0 }) => {
     // 檢查剩餘的泡泡數量與狀態
     const activeEmotions = tile.emotions.filter((e) => !e.removed);
     const activeCount = activeEmotions.length;
 
-    // 當 activeCount 變為 0，且元件仍在渲染時，表示正在掉落
+    // 當 activeCount 變為 0，表示正在掉落
     const isFalling = activeCount === 0;
 
-    // 如果沒有情緒且沒有在掉落（可能在第一次渲染就是空的，通常不會發生），或者掉落動畫已結束
     const [shouldUnmount, setShouldUnmount] = React.useState(false);
+
+    // 鎖定掉落時的隨機旋轉方向，避免每次 re-render 時值改變導致閃爍
+    const fallDirectionRef = React.useRef<number>(Math.random() > 0.5 ? 90 : -90);
 
     React.useEffect(() => {
       if (isFalling) {
-        // 設定定時器，在掉落動畫結束後解除掛載 (動畫設定 0.8s)
         const timer = setTimeout(() => {
           setShouldUnmount(true);
         }, 800);
@@ -55,52 +114,62 @@ const TileCard: React.FC<TileCardProps> = React.memo(
     // 如果只剩下一個泡泡，將旋轉中心設定為該泡泡的中心點，並讓它受到「重力」影響垂下
     let customOrigin = 'center center';
     let gravityRotation = tile.rotation;
-    
+
     if (activeCount === 1) {
       const lastEmotion = activeEmotions[0];
       const percentX = (lastEmotion.offsetX / tile.width) * 100;
       const percentY = (lastEmotion.offsetY / tile.height) * 100;
       customOrigin = `${percentX}% ${percentY}%`;
-      
-      // 簡單的物理模擬：計算圖釘到板塊中心的向量，讓中心掉落到圖釘的正下方
+
+      // 物理模擬：計算圖釘到板塊中心的向量，讓中心掉落到圖釘的正下方
       const cx = tile.width / 2;
       const cy = tile.height / 2;
       const dx = cx - lastEmotion.offsetX;
       const dy = cy - lastEmotion.offsetY;
-      
-      // 計算原本該向量的角度
+
       const currentAngle = Math.atan2(dy, dx) * (180 / Math.PI);
-      
-      // 我們希望這個向量最後指向正下方 (90度)
-      // 所以需要旋轉 (90 - currentAngle) 度
       const targetDelta = 90 - currentAngle;
-      gravityRotation = tile.rotation + targetDelta;
+      const targetRotation = tile.rotation + targetDelta;
+
+      // 碰撞偵測：如果旋轉途中碰到其他板塊，就停在碰撞的位置
+      gravityRotation = findCollisionAngle(
+        tile,
+        lastEmotion.offsetX,
+        lastEmotion.offsetY,
+        tile.rotation,
+        targetRotation,
+        allTiles,
+      );
     }
+
+    // 計算掉落方向：將螢幕正下方 (0, 1) 轉換到 game-board 的本地座標系
+    // NOTE: game-board 被旋轉了 boardRotation 度，所以螢幕正下方在 board 本地座標中
+    //       需要反向旋轉回來
+    const boardRotRad = (boardRotation * Math.PI) / 180;
+    const fallDistance = 400;
+    const fallDeltaX = Math.sin(boardRotRad) * fallDistance;
+    const fallDeltaY = Math.cos(boardRotRad) * fallDistance;
 
     return (
       <div
         className={`tile-card ${isFalling ? 'falling' : ''}`}
         style={{
           position: 'absolute',
-          left: tile.x,
-          top: tile.y,
+          left: isFalling ? tile.x + fallDeltaX : tile.x,
+          top: isFalling ? tile.y + fallDeltaY : tile.y,
           width: tile.width,
           height: tile.height,
           zIndex: tile.layer * 10,
-          transform: `rotate(${isFalling ? tile.rotation : gravityRotation}deg)`,
+          transform: isFalling
+            ? `rotate(${tile.rotation + fallDirectionRef.current}deg) scale(0.8)`
+            : `rotate(${gravityRotation}deg)`,
           transformOrigin: customOrigin,
           opacity: isFalling ? 0 : layerStyle.opacity,
-          // 針對 top 增加掉落動畫的 transition，針對 transform 增加圖釘晃動的 transition
-          transition: isFalling 
-            ? 'top 0.8s cubic-bezier(0.55, 0.085, 0.68, 0.53), transform 0.8s ease-in, opacity 0.6s ease 0.2s'
+          transition: isFalling
+            ? 'top 0.8s cubic-bezier(0.55, 0.085, 0.68, 0.53), left 0.8s cubic-bezier(0.55, 0.085, 0.68, 0.53), transform 0.8s ease-in, opacity 0.6s ease 0.2s'
             : 'opacity 0.4s ease, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
           overflow: 'visible',
-          // 掉落動畫：修改 top 進行絕對座標掉落，並同時旋轉
-          ...(isFalling && {
-            top: tile.y + 400, // 完全不受 rotate 影響，直直往下掉
-            transform: `rotate(${tile.rotation + (Math.random() > 0.5 ? 90 : -90)}deg) scale(0.8)`,
-            pointerEvents: 'none',
-          }),
+          ...(isFalling && { pointerEvents: 'none' as const }),
           // clip-path 形狀使用 filter: drop-shadow 代替 box-shadow
           filter: hasClipPath
             ? 'drop-shadow(0 3px 8px rgba(0,0,0,0.06)) drop-shadow(0 1px 2px rgba(0,0,0,0.04))'
@@ -147,7 +216,7 @@ const TileCard: React.FC<TileCardProps> = React.memo(
           <EmotionBubble
             key={emotion.id}
             emotion={emotion}
-            ownerTile={{...tile, rotation: isFalling ? tile.rotation : tile.rotation}} // 確保 props 更新
+            ownerTile={tile}
             allTiles={allTiles}
             onClick={onEmotionClick}
             boardRotation={boardRotation}
