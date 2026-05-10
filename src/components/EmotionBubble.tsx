@@ -63,30 +63,50 @@ const EmotionBubble: React.FC<EmotionBubbleProps> = React.memo(
       }
     }, [covered, ownerTile.id, emotion.id, emotion.colorIndex, onClick]);
 
+    // 額外的觸控熱區大小（像素）
+    const touchPadding = 6;
+
     return (
       <div
         className={`emotion-bubble ${covered ? 'covered' : 'exposed'}`}
         style={{
           position: 'absolute',
-          left: emotion.offsetX - EMOTION_RADIUS,
-          top: emotion.offsetY - EMOTION_RADIUS,
-          width: size,
-          height: size,
-          background: `radial-gradient(circle at 35% 35%, ${colorDef.color}ee, ${colorDef.glow}cc)`,
-          boxShadow: covered
-            ? 'inset 0 1px 3px rgba(0,0,0,0.1)'
-            : `0 2px 8px ${colorDef.glow}88, 0 0 12px ${colorDef.glow}44, inset 0 -3px 6px rgba(0,0,0,0.08), inset 0 2px 4px rgba(255,255,255,0.4)`,
+          // 擴大點擊範圍：往外擴展 touchPadding 像素
+          left: emotion.offsetX - EMOTION_RADIUS - touchPadding,
+          top: emotion.offsetY - EMOTION_RADIUS - touchPadding,
+          width: size + touchPadding * 2,
+          height: size + touchPadding * 2,
+          // 背景繪製在內部圓形區域
+          background: 'transparent',
           borderRadius: '50%',
           cursor: covered ? 'default' : 'pointer',
-          opacity: covered ? 0.35 : 1,
           // 抵銷板塊本身的旋轉與整個盤面的旋轉
           '--counter-rot': `${-(ownerTile.rotation + boardRotation)}deg`,
           transition: 'all 0.25s ease',
           zIndex: covered ? 0 : 1,
-          overflow: 'hidden',
+          overflow: 'visible',
         } as React.CSSProperties}
-        onClick={handleClick}
+        // 使用 onPointerDown 取代 onClick，觸控反應更快
+        onPointerDown={handleClick}
       >
+        {/* 實際可見的泡泡圓形 */}
+        <div
+          style={{
+            position: 'absolute',
+            left: touchPadding,
+            top: touchPadding,
+            width: size,
+            height: size,
+            background: `radial-gradient(circle at 35% 35%, ${colorDef.color}ee, ${colorDef.glow}cc)`,
+            boxShadow: covered
+              ? 'inset 0 1px 3px rgba(0,0,0,0.1)'
+              : `0 2px 8px ${colorDef.glow}88, 0 0 12px ${colorDef.glow}44, inset 0 -3px 6px rgba(0,0,0,0.08), inset 0 2px 4px rgba(255,255,255,0.4)`,
+            borderRadius: '50%',
+            opacity: covered ? 0.35 : 1,
+            overflow: 'hidden',
+            pointerEvents: 'none',
+          }}
+        >
         {/* 光澤高光 */}
         <div
           style={{
@@ -101,6 +121,7 @@ const EmotionBubble: React.FC<EmotionBubbleProps> = React.memo(
           }}
         />
         <CuteFace covered={covered} />
+        </div>
       </div>
     );
   }

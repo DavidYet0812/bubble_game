@@ -33,8 +33,8 @@ export const TILES_PER_LAYER = { min: 4, max: 6 };
 /** 每個板塊上的情緒數量範圍 */
 export const EMOTIONS_PER_TILE = { min: 1, max: 3 };
 
-/** 情緒泡泡半徑（像素） */
-export const EMOTION_RADIUS = 18;
+/** 情緒泡泡半徑（像素）— 增大以提升點擊敏感度 */
+export const EMOTION_RADIUS = 22;
 
 /** 板塊最小/最大尺寸 */
 export const TILE_SIZE = {
@@ -49,20 +49,19 @@ export const BOARD_WIDTH = 340;
 export const BOARD_HEIGHT = 420;
 
 /**
- * 10 種情緒顏色定義
- * NOTE: 選用柔和粉彩色系以還原原圖夢幻風格
+ * 8 種情緒顏色定義
+ * NOTE: 精選高對比色系，確保每種顏色都能一眼辨識
+ *       移除了容易混淆的相近色（如蜜桃/玫瑰、薄荷/湖水、向日葵/琥珀）
  */
 export const EMOTION_COLORS: { name: string; color: string; glow: string; face: string }[] = [
-  { name: '薄荷', color: '#A8E6CF', glow: '#7DCEA0', face: '◕‿◕' },
-  { name: '蜜桃', color: '#FFB7B2', glow: '#E8918B', face: '◕ω◕' },
-  { name: '天空', color: '#87CEEB', glow: '#5DADE2', face: '◕﹏◕' },
-  { name: '薰衣草', color: '#B19CD9', glow: '#8E7CC3', face: '◕‿◕' },
-  { name: '玫瑰', color: '#FFB6C1', glow: '#E88DA0', face: '◕ᴗ◕' },
-  { name: '向日葵', color: '#FFEAA7', glow: '#F0D078', face: '◕‿◕' },
-  { name: '珊瑚', color: '#FF7675', glow: '#E05550', face: '◕д◕' },
-  { name: '湖水', color: '#81ECEC', glow: '#55C7C7', face: '◕‿◕' },
-  { name: '琥珀', color: '#FDCB6E', glow: '#D4A843', face: '◕‿◕' },
-  { name: '珍珠', color: '#DFE6E9', glow: '#B0BEC5', face: '◕‿◕' },
+  { name: '草莓', color: '#FF6B6B', glow: '#E04040', face: '◕‿◕' },
+  { name: '柑橘', color: '#FFA502', glow: '#D48900', face: '◕ω◕' },
+  { name: '檸檬', color: '#FFEAA7', glow: '#E8D060', face: '◕‿◕' },
+  { name: '薄荷', color: '#55E6C1', glow: '#30B88C', face: '◕﹏◕' },
+  { name: '天空', color: '#54A0FF', glow: '#2E86DE', face: '◕‿◕' },
+  { name: '葡萄', color: '#A55EEA', glow: '#8038C7', face: '◕ᴗ◕' },
+  { name: '蜜桃', color: '#FF9FF3', glow: '#D06EB8', face: '◕‿◕' },
+  { name: '雲朵', color: '#C8D6E5', glow: '#9AACBD', face: '◕‿◕' },
 ];
 
 /** 情緒顏色數量 */

@@ -246,12 +246,12 @@ export function generateLayer(layerIndex: number, targetColors?: number[]): Tile
   const colorCount = randInt(4, Math.min(6, COLOR_COUNT));
   const usedColors = new Set<number>();
 
-  // 將當前的收集目標顏色以高權重加入顏色池（提高出現機率）
+  // 將當前的收集目標顏色以高權重加入顏色池（大幅提高出現機率）
   if (targetColors && targetColors.length > 0) {
     targetColors.forEach(c => {
       if (!usedColors.has(c)) {
-        // 重複加入 3 次以增加權重
-        colorPool.push(c, c, c);
+        // 重複加入 5 次以大幅增加權重，確保目標顏色頻繁出現
+        colorPool.push(c, c, c, c, c);
         usedColors.add(c);
       }
     });
