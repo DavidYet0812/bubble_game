@@ -240,23 +240,23 @@ export function generateLayer(layerIndex: number, targetColors?: number[]): Tile
   const tileCount = randInt(10, 16);
   const tiles: Tile[] = [];
 
-  // 建立顏色池（每層 4~6 種顏色）
+  // 建立顏色池（每層僅用 3~4 種顏色，讓同色泡泡更密集）
   const colorPool: number[] = [];
-  const colorCount = randInt(4, Math.min(6, COLOR_COUNT));
+  const colorCount = randInt(3, Math.min(4, COLOR_COUNT));
   const usedColors = new Set<number>();
 
-  // 將當前的收集目標顏色以高權重加入顏色池（大幅提高出現機率）
+  // 將當前的收集目標顏色以極高權重加入顏色池
+  // NOTE: 每個目標色加 8 次，非目標色僅 1 次，確保盤面上目標色佔絕對多數
   if (targetColors && targetColors.length > 0) {
     targetColors.forEach(c => {
       if (!usedColors.has(c)) {
-        // 重複加入 5 次以大幅增加權重，確保目標顏色頻繁出現
-        colorPool.push(c, c, c, c, c);
+        for (let i = 0; i < 8; i++) colorPool.push(c);
         usedColors.add(c);
       }
     });
   }
 
-  // 隨機補滿其餘顏色
+  // 僅補 0~1 個非目標色，讓顏色更集中
   while (usedColors.size < colorCount) {
     const c = Math.floor(Math.random() * COLOR_COUNT);
     if (!usedColors.has(c)) {
