@@ -121,15 +121,18 @@ const TileCard: React.FC<TileCardProps> = React.memo(
       const percentY = (lastEmotion.offsetY / tile.height) * 100;
       customOrigin = `${percentX}% ${percentY}%`;
 
-      // 物理模擬：計算圖釘到板塊中心的向量，讓中心掉落到圖釘的正下方
+      // 物理模擬：計算需要的旋轉角度，使板塊中心掛在圖釘（泡泡）的「螢幕正下方」
+      // NOTE: 由於板塊是 game-board 的子元素，game-board 被旋轉了 boardRotation 度，
+      //       所以需要減去 boardRotation 來抵銷，讓重力方向永遠指向螢幕正下方
       const cx = tile.width / 2;
       const cy = tile.height / 2;
       const dx = cx - lastEmotion.offsetX;
       const dy = cy - lastEmotion.offsetY;
 
-      const currentAngle = Math.atan2(dy, dx) * (180 / Math.PI);
-      const targetDelta = 90 - currentAngle;
-      const targetRotation = tile.rotation + targetDelta;
+      // atan2(-dx, dy) 計算出使中心位於圖釘正下方所需的「總旋轉角度」
+      // 減去 boardRotation 得到板塊本身需要的旋轉角度
+      const targetTotal = Math.atan2(-dx, dy) * (180 / Math.PI);
+      const targetRotation = targetTotal - boardRotation;
 
       // 碰撞偵測：如果旋轉途中碰到其他板塊，就停在碰撞的位置
       gravityRotation = findCollisionAngle(
@@ -167,7 +170,7 @@ const TileCard: React.FC<TileCardProps> = React.memo(
           opacity: isFalling ? 0 : layerStyle.opacity,
           transition: isFalling
             ? 'top 0.8s cubic-bezier(0.55, 0.085, 0.68, 0.53), left 0.8s cubic-bezier(0.55, 0.085, 0.68, 0.53), transform 0.8s ease-in, opacity 0.6s ease 0.2s'
-            : 'opacity 0.4s ease, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            : `opacity 0.4s ease, transform ${activeCount === 1 ? '0.3s ease-out' : '0.6s cubic-bezier(0.34, 1.56, 0.64, 1)'}`,
           overflow: 'visible',
           ...(isFalling && { pointerEvents: 'none' as const }),
           // clip-path 形狀使用 filter: drop-shadow 代替 box-shadow
