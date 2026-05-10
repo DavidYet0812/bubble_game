@@ -30,8 +30,8 @@ const StartScreen: React.FC<StartScreenProps> = ({ onStart }) => {
             <span>匹配顏色收入目標，每組 3 個</span>
           </div>
           <div className="rule-item">
-            <span className="rule-icon"> ⏱</span>
-            <span> 360 秒無盡模式，完成目標加時 +5s</span>
+            <span className="rule-icon">⏱</span>
+            <span>360 秒無盡模式，完成目標加時 +5s</span>
           </div>
           <div className="rule-item">
             <span className="rule-icon">⚠️</span>

@@ -577,6 +577,9 @@ body {
 .rule-icon {
   font-size: 18px;
   flex-shrink: 0;
+  width: 24px;
+  display: flex;
+  justify-content: center;
 }
 
 .start-btn {
