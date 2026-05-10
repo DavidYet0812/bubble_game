@@ -13,6 +13,7 @@ interface EmotionBubbleProps {
   ownerTile: Tile;
   allTiles: Tile[];
   onClick: (tileId: string, emotionId: string) => void;
+  boardRotation?: number;
 }
 
 /** 用 SVG 繪製可愛表情臉 */
@@ -48,7 +49,7 @@ function CuteFace({ covered }: { covered: boolean }) {
 }
 
 const EmotionBubble: React.FC<EmotionBubbleProps> = React.memo(
-  ({ emotion, ownerTile, allTiles, onClick }) => {
+  ({ emotion, ownerTile, allTiles, onClick, boardRotation = 0 }) => {
     if (emotion.removed) return null;
 
     const covered = isEmotionCovered(emotion, ownerTile, allTiles);
@@ -78,7 +79,8 @@ const EmotionBubble: React.FC<EmotionBubbleProps> = React.memo(
           borderRadius: '50%',
           cursor: covered ? 'default' : 'pointer',
           opacity: covered ? 0.35 : 1,
-          '--counter-rot': `${-ownerTile.rotation}deg`,
+          // 抵銷板塊本身的旋轉與整個盤面的旋轉
+          '--counter-rot': `${-(ownerTile.rotation + boardRotation)}deg`,
           transition: 'all 0.25s ease',
           zIndex: covered ? 0 : 1,
           overflow: 'hidden',

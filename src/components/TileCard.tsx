@@ -12,6 +12,7 @@ interface TileCardProps {
   tile: TileType;
   allTiles: TileType[];
   onEmotionClick: (tileId: string, emotionId: string) => void;
+  boardRotation?: number;
 }
 
 /** 每層的視覺樣式（色調、透明度、模糊度） */
@@ -25,7 +26,7 @@ const LAYER_STYLES: { bg: string; opacity: number; blur: number }[] = [
 ];
 
 const TileCard: React.FC<TileCardProps> = React.memo(
-  ({ tile, allTiles, onEmotionClick }) => {
+  ({ tile, allTiles, onEmotionClick, boardRotation = 0 }) => {
     if (tile.emotions.every((e) => e.removed)) return null;
 
     const layerStyle = LAYER_STYLES[tile.layer % LAYER_STYLES.length];
@@ -94,6 +95,7 @@ const TileCard: React.FC<TileCardProps> = React.memo(
             ownerTile={tile}
             allTiles={allTiles}
             onClick={onEmotionClick}
+            boardRotation={boardRotation}
           />
         ))}
       </div>
