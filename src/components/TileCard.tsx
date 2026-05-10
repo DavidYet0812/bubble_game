@@ -17,12 +17,12 @@ interface TileCardProps {
 
 /** 每層的視覺樣式（色調、透明度、模糊度） */
 const LAYER_STYLES: { bg: string; opacity: number; blur: number }[] = [
-  { bg: 'rgba(180, 210, 255, 0.25)', opacity: 0.78, blur: 6 },
-  { bg: 'rgba(210, 190, 255, 0.30)', opacity: 0.88, blur: 8 },
-  { bg: 'rgba(255, 210, 225, 0.32)', opacity: 0.94, blur: 10 },
-  { bg: 'rgba(200, 240, 220, 0.28)', opacity: 0.88, blur: 8 },
-  { bg: 'rgba(255, 235, 200, 0.28)', opacity: 0.88, blur: 8 },
-  { bg: 'rgba(220, 200, 240, 0.32)', opacity: 0.92, blur: 10 },
+  { bg: 'rgba(180, 210, 255, 0.95)', opacity: 1, blur: 6 },
+  { bg: 'rgba(210, 190, 255, 0.95)', opacity: 1, blur: 8 },
+  { bg: 'rgba(255, 210, 225, 0.95)', opacity: 1, blur: 10 },
+  { bg: 'rgba(200, 240, 220, 0.95)', opacity: 1, blur: 8 },
+  { bg: 'rgba(255, 235, 200, 0.95)', opacity: 1, blur: 8 },
+  { bg: 'rgba(220, 200, 240, 0.95)', opacity: 1, blur: 10 },
 ];
 
 const TileCard: React.FC<TileCardProps> = React.memo(
@@ -78,9 +78,9 @@ const TileCard: React.FC<TileCardProps> = React.memo(
             ? 'transform 0.8s cubic-bezier(0.55, 0.085, 0.68, 0.53), opacity 0.6s ease 0.2s'
             : 'opacity 0.4s ease',
           overflow: 'visible',
-          // 掉落動畫：往下掉並旋轉
+          // 掉落動畫：往下掉並旋轉（分離旋轉與位移，確保永遠往正下方掉落）
           ...(isFalling && {
-            transform: `translateY(300px) rotate(${tile.rotation + (Math.random() > 0.5 ? 45 : -45)}deg) scale(0.8)`,
+            transform: `translate(0px, 300px) rotate(${tile.rotation + (Math.random() > 0.5 ? 60 : -60)}deg) scale(0.8)`,
             pointerEvents: 'none',
           }),
           // clip-path 形狀使用 filter: drop-shadow 代替 box-shadow

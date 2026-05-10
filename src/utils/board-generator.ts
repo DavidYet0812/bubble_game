@@ -159,8 +159,9 @@ function generateEmotionPositions(
 
   const cx = tileW / 2;
   const cy = tileH / 2;
-  const a = (tileW * safeZone) / 2;
-  const b = (tileH * safeZone) / 2;
+  // 進一步縮小 safeZone，並減去泡泡半徑，確保泡泡最邊緣也不會超出圖形
+  const a = Math.max(10, (tileW * safeZone) / 2 - EMOTION_RADIUS * 0.5);
+  const b = Math.max(10, (tileH * safeZone) / 2 - EMOTION_RADIUS * 0.5);
 
   for (let i = 0; i < count; i++) {
     let attempts = 0;
