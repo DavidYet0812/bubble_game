@@ -6,6 +6,7 @@ import React, { useCallback } from 'react';
 import type { Emotion, Tile } from '../types/game';
 import { EMOTION_COLORS, EMOTION_RADIUS } from '../utils/constants';
 import { isEmotionCovered } from '../utils/game-logic';
+import { soundManager } from '../utils/sound-manager';
 
 interface EmotionBubbleProps {
   emotion: Emotion;
@@ -56,9 +57,10 @@ const EmotionBubble: React.FC<EmotionBubbleProps> = React.memo(
 
     const handleClick = useCallback(() => {
       if (!covered) {
+        soundManager.playBubblePop(emotion.colorIndex);
         onClick(ownerTile.id, emotion.id);
       }
-    }, [covered, ownerTile.id, emotion.id, onClick]);
+    }, [covered, ownerTile.id, emotion.id, emotion.colorIndex, onClick]);
 
     return (
       <div
