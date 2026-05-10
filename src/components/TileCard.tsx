@@ -52,13 +52,29 @@ const TileCard: React.FC<TileCardProps> = React.memo(
     const layerStyle = LAYER_STYLES[tile.layer % LAYER_STYLES.length];
     const hasClipPath = !!tile.clipPath;
 
-    // 如果只剩下一個泡泡，將旋轉中心設定為該泡泡的中心點
+    // 如果只剩下一個泡泡，將旋轉中心設定為該泡泡的中心點，並讓它受到「重力」影響垂下
     let customOrigin = 'center center';
+    let gravityRotation = tile.rotation;
+    
     if (activeCount === 1) {
       const lastEmotion = activeEmotions[0];
       const percentX = (lastEmotion.offsetX / tile.width) * 100;
       const percentY = (lastEmotion.offsetY / tile.height) * 100;
       customOrigin = `${percentX}% ${percentY}%`;
+      
+      // 簡單的物理模擬：計算圖釘到板塊中心的向量，讓中心掉落到圖釘的正下方
+      const cx = tile.width / 2;
+      const cy = tile.height / 2;
+      const dx = cx - lastEmotion.offsetX;
+      const dy = cy - lastEmotion.offsetY;
+      
+      // 計算原本該向量的角度
+      const currentAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+      
+      // 我們希望這個向量最後指向正下方 (90度)
+      // 所以需要旋轉 (90 - currentAngle) 度
+      const targetDelta = 90 - currentAngle;
+      gravityRotation = tile.rotation + targetDelta;
     }
 
     return (
@@ -71,16 +87,18 @@ const TileCard: React.FC<TileCardProps> = React.memo(
           width: tile.width,
           height: tile.height,
           zIndex: tile.layer * 10,
-          transform: `rotate(${tile.rotation}deg)`,
+          transform: `rotate(${isFalling ? tile.rotation : gravityRotation}deg)`,
           transformOrigin: customOrigin,
           opacity: isFalling ? 0 : layerStyle.opacity,
+          // 針對 top 增加掉落動畫的 transition，針對 transform 增加圖釘晃動的 transition
           transition: isFalling 
-            ? 'transform 0.8s cubic-bezier(0.55, 0.085, 0.68, 0.53), opacity 0.6s ease 0.2s'
-            : 'opacity 0.4s ease',
+            ? 'top 0.8s cubic-bezier(0.55, 0.085, 0.68, 0.53), transform 0.8s ease-in, opacity 0.6s ease 0.2s'
+            : 'opacity 0.4s ease, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
           overflow: 'visible',
-          // 掉落動畫：往下掉並旋轉（分離旋轉與位移，確保永遠往正下方掉落）
+          // 掉落動畫：修改 top 進行絕對座標掉落，並同時旋轉
           ...(isFalling && {
-            transform: `translate(0px, 300px) rotate(${tile.rotation + (Math.random() > 0.5 ? 60 : -60)}deg) scale(0.8)`,
+            top: tile.y + 400, // 完全不受 rotate 影響，直直往下掉
+            transform: `rotate(${tile.rotation + (Math.random() > 0.5 ? 90 : -90)}deg) scale(0.8)`,
             pointerEvents: 'none',
           }),
           // clip-path 形狀使用 filter: drop-shadow 代替 box-shadow
