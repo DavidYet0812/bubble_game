@@ -13,20 +13,22 @@ class SoundManager {
    * NOTE: 使用五聲音階（C, D, E, G, A）加高八度，避免不和諧的音程
    */
   private readonly colorSounds = [
-    { freq: 523.25, type: 'sine' as OscillatorType, label: '草莓' },     // C5
-    { freq: 587.33, type: 'triangle' as OscillatorType, label: '柑橘' }, // D5
-    { freq: 659.25, type: 'sine' as OscillatorType, label: '檸檬' },     // E5
-    { freq: 783.99, type: 'sine' as OscillatorType, label: '薄荷' },     // G5
-    { freq: 880.00, type: 'triangle' as OscillatorType, label: '天空' }, // A5
-    { freq: 987.77, type: 'sine' as OscillatorType, label: '葡萄' },     // B5
-    { freq: 1046.5, type: 'sine' as OscillatorType, label: '蜜桃' },     // C6
-    { freq: 698.46, type: 'triangle' as OscillatorType, label: '雲朵' }, // F5
+    { freq: 392.00, type: 'sine' as OscillatorType, label: '藍露' },
+    { freq: 440.00, type: 'sine' as OscillatorType, label: '橘光' },
+    { freq: 493.88, type: 'sine' as OscillatorType, label: '星紫' },
+    { freq: 523.25, type: 'sine' as OscillatorType, label: '青綠' },
+    { freq: 587.33, type: 'sine' as OscillatorType, label: '嫩綠' },
+    { freq: 659.25, type: 'sine' as OscillatorType, label: '粉桃' },
+    { freq: 698.46, type: 'sine' as OscillatorType, label: '月白' },
+    { freq: 783.99, type: 'sine' as OscillatorType, label: '海鹽' },
   ];
 
   /** 初始化 AudioContext (需在使用者互動後呼叫) */
   public init() {
     if (!this.audioCtx) {
-      const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+      const AudioCtxClass =
+        window.AudioContext ||
+        (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (AudioCtxClass) {
         this.audioCtx = new AudioCtxClass();
       }
@@ -50,70 +52,88 @@ class SoundManager {
     const now = ctx.currentTime;
     const sound = this.colorSounds[colorIndex % this.colorSounds.length];
 
-    // 建立主輸出增益節點
+    // 建立主輸出增益節點：低音量、短尾巴，接近影片中的水泡感
     const masterGain = ctx.createGain();
-    masterGain.gain.setValueAtTime(0.35, now);
-    masterGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+    masterGain.gain.setValueAtTime(0.22, now);
+    masterGain.gain.exponentialRampToValueAtTime(0.001, now + 0.34);
 
-    // 低通濾波器：讓聲音更柔和不刺耳
+    // 低通濾波器：去掉尖銳高頻，保留圓潤的「啵」
     const filter = ctx.createBiquadFilter();
     filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(3000, now);
-    filter.frequency.exponentialRampToValueAtTime(800, now + 0.15);
-    filter.Q.value = 1.5;
+    filter.frequency.setValueAtTime(1800, now);
+    filter.frequency.exponentialRampToValueAtTime(520, now + 0.22);
+    filter.Q.value = 2.2;
 
     filter.connect(masterGain);
     masterGain.connect(ctx.destination);
 
-    // 主音：頻率從高處快速滑落，產生「啵」的水滴感
+    // 主音：先上揚再滑落，模擬透明泡泡破裂的彈性
     const osc1 = ctx.createOscillator();
     const gain1 = ctx.createGain();
     osc1.type = sound.type;
-    osc1.frequency.setValueAtTime(sound.freq * 1.5, now);
-    osc1.frequency.exponentialRampToValueAtTime(sound.freq * 0.8, now + 0.12);
-    gain1.gain.setValueAtTime(0.6, now);
-    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+    osc1.frequency.setValueAtTime(sound.freq * 0.88, now);
+    osc1.frequency.exponentialRampToValueAtTime(sound.freq * 1.65, now + 0.035);
+    osc1.frequency.exponentialRampToValueAtTime(sound.freq * 0.72, now + 0.24);
+    gain1.gain.setValueAtTime(0.001, now);
+    gain1.gain.linearRampToValueAtTime(0.68, now + 0.012);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
     osc1.connect(gain1);
     gain1.connect(filter);
     osc1.start(now);
-    osc1.stop(now + 0.2);
+    osc1.stop(now + 0.26);
 
-    // 泛音：高八度的柔和點綴，增加空靈感
+    // 泛音：很短的亮點，像影片中點擊後的清脆水光
     const osc2 = ctx.createOscillator();
     const gain2 = ctx.createGain();
     osc2.type = 'sine';
-    osc2.frequency.setValueAtTime(sound.freq * 2.5, now);
-    osc2.frequency.exponentialRampToValueAtTime(sound.freq * 1.8, now + 0.08);
-    gain2.gain.setValueAtTime(0.15, now);
-    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+    osc2.frequency.setValueAtTime(sound.freq * 2.15, now + 0.018);
+    osc2.frequency.exponentialRampToValueAtTime(sound.freq * 1.45, now + 0.13);
+    gain2.gain.setValueAtTime(0.001, now);
+    gain2.gain.linearRampToValueAtTime(0.16, now + 0.025);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
     osc2.connect(gain2);
     gain2.connect(filter);
-    osc2.start(now);
-    osc2.stop(now + 0.12);
+    osc2.start(now + 0.018);
+    osc2.stop(now + 0.15);
 
-    // 噪音層：短促的白噪音模擬泡泡破裂的「噗」聲
-    const bufferSize = ctx.sampleRate * 0.05;
+    // 噪音層：極短、極小聲，只留下泡泡破裂的氣泡邊緣
+    const bufferSize = ctx.sampleRate * 0.035;
     const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const noiseData = noiseBuffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
-      noiseData[i] = (Math.random() * 2 - 1) * 0.3;
+      noiseData[i] = (Math.random() * 2 - 1) * 0.16;
     }
     const noise = ctx.createBufferSource();
     noise.buffer = noiseBuffer;
     const noiseGain = ctx.createGain();
-    noiseGain.gain.setValueAtTime(0.08, now);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+    noiseGain.gain.setValueAtTime(0.035, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
 
     // 噪音也通過高通濾波器，只保留高頻的「嘶」聲
     const noiseFilter = ctx.createBiquadFilter();
-    noiseFilter.type = 'highpass';
-    noiseFilter.frequency.value = 2000;
+    noiseFilter.type = 'bandpass';
+    noiseFilter.frequency.value = 1450;
+    noiseFilter.Q.value = 0.8;
 
     noise.connect(noiseFilter);
     noiseFilter.connect(noiseGain);
     noiseGain.connect(masterGain);
     noise.start(now);
-    noise.stop(now + 0.05);
+    noise.stop(now + 0.04);
+
+    // 低頻小水滴尾音，讓連續點擊比較像原型影片的柔軟泡泡
+    const drop = ctx.createOscillator();
+    const dropGain = ctx.createGain();
+    drop.type = 'sine';
+    drop.frequency.setValueAtTime(sound.freq * 0.55, now + 0.06);
+    drop.frequency.exponentialRampToValueAtTime(sound.freq * 0.42, now + 0.28);
+    dropGain.gain.setValueAtTime(0.001, now + 0.055);
+    dropGain.gain.linearRampToValueAtTime(0.12, now + 0.08);
+    dropGain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    drop.connect(dropGain);
+    dropGain.connect(filter);
+    drop.start(now + 0.055);
+    drop.stop(now + 0.31);
   }
 
   /** 切換靜音狀態 */

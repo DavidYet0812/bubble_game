@@ -5,8 +5,6 @@
  */
 import type { Tile, Emotion } from '../types/game';
 import {
-  BOARD_WIDTH,
-  BOARD_HEIGHT,
   EMOTIONS_PER_TILE,
   COLOR_COUNT,
   EMOTION_RADIUS,
@@ -161,7 +159,7 @@ function generateEmotionPositions(
   for (let i = 0; i < count; i++) {
     let attempts = 0;
     let ox: number, oy: number;
-    let isValid = false;
+    let isValid: boolean;
 
     do {
       ox = marginX + Math.random() * (tileW - marginX * 2);
@@ -196,15 +194,43 @@ function generateEmotions(
   tileW: number,
   tileH: number,
   colorPool: number[],
-  safeZone: number
+  safeZone: number,
+  visualKind: Tile['visualKind'] = 'blob',
+  fixedCount?: number,
+  strokeWidth = 48
 ): Emotion[] {
   // 根據板塊面積決定泡泡數量（min 4, max 6）
   const effectiveArea = tileW * tileH * safeZone * safeZone;
   let maxEmotions = EMOTIONS_PER_TILE.min;
   if (effectiveArea > 3000) maxEmotions = 5;
   if (effectiveArea > 5000) maxEmotions = 6;
-  const count = randInt(EMOTIONS_PER_TILE.min, maxEmotions);
-  const positions = generateEmotionPositions(tileW, tileH, count, safeZone);
+  const count = fixedCount ?? randInt(EMOTIONS_PER_TILE.min, maxEmotions);
+  let positions: { offsetX: number; offsetY: number }[];
+
+  if (visualKind === 'ring') {
+    const cx = tileW / 2;
+    const cy = tileH / 2;
+    const radius = Math.min(tileW, tileH) / 2 - strokeWidth / 2;
+    const angleOffset = randFloat(-0.2, 0.2);
+    positions = Array.from({ length: count }).map((_, i) => {
+      const angle = angleOffset + (Math.PI * 2 * i) / count + randFloat(-0.08, 0.08);
+      return {
+        offsetX: cx + Math.cos(angle) * radius,
+        offsetY: cy + Math.sin(angle) * radius,
+      };
+    });
+  } else if (visualKind === 'tube') {
+    const pad = Math.max(24, tileH * 0.55);
+    positions = Array.from({ length: count }).map((_, i) => {
+      const t = count === 1 ? 0.5 : i / (count - 1);
+      return {
+        offsetX: pad + t * Math.max(1, tileW - pad * 2) + randFloat(-8, 8),
+        offsetY: tileH / 2 + randFloat(-tileH * 0.16, tileH * 0.16),
+      };
+    });
+  } else {
+    positions = generateEmotionPositions(tileW, tileH, count, safeZone);
+  }
 
   return positions.map((pos) => ({
     id: uid('emo'),
@@ -219,11 +245,57 @@ function generateEmotions(
 // 板塊尺寸配置（增大以容納更多泡泡）
 // ============================================================
 
-const TILE_SIZES = [
-  { minW: 80, maxW: 110, minH: 70, maxH: 90 },
-  { minW: 100, maxW: 130, minH: 80, maxH: 105 },
-  { minW: 120, maxW: 155, minH: 95, maxH: 125 },
-  { minW: 140, maxW: 175, minH: 110, maxH: 145 },
+const JELLY_COLORS = [
+  'rgba(255, 164, 176, 0.58)',
+  'rgba(176, 151, 255, 0.62)',
+  'rgba(221, 255, 141, 0.58)',
+  'rgba(139, 229, 255, 0.56)',
+  'rgba(255, 185, 101, 0.54)',
+  'rgba(194, 240, 255, 0.50)',
+];
+
+interface PrototypeTileSpec {
+  visualKind: Tile['visualKind'];
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+  color: string;
+  strokeWidth?: number;
+  count: number;
+}
+
+const PROTOTYPE_LAYOUTS: PrototypeTileSpec[][] = [
+  [
+    { visualKind: 'ring', x: 10, y: 98, width: 360, height: 360, rotation: -16, color: JELLY_COLORS[0], strokeWidth: 50, count: 15 },
+    { visualKind: 'tube', x: 95, y: 145, width: 250, height: 48, rotation: 74, color: JELLY_COLORS[1], count: 4 },
+    { visualKind: 'tube', x: 76, y: 230, width: 270, height: 46, rotation: -48, color: JELLY_COLORS[1], count: 4 },
+    { visualKind: 'tube', x: 120, y: 258, width: 260, height: 46, rotation: 50, color: JELLY_COLORS[1], count: 4 },
+    { visualKind: 'tube', x: 112, y: 350, width: 250, height: 46, rotation: -70, color: JELLY_COLORS[1], count: 4 },
+    { visualKind: 'blob', x: 235, y: 305, width: 118, height: 70, rotation: -28, color: JELLY_COLORS[2], count: 3 },
+  ],
+  [
+    { visualKind: 'blob', x: 70, y: 170, width: 255, height: 210, rotation: -4, color: JELLY_COLORS[5], count: 8 },
+    { visualKind: 'tube', x: -40, y: 360, width: 430, height: 54, rotation: -28, color: JELLY_COLORS[0], count: 7 },
+    { visualKind: 'tube', x: 34, y: 250, width: 260, height: 48, rotation: 36, color: JELLY_COLORS[1], count: 4 },
+    { visualKind: 'tube', x: 118, y: 230, width: 255, height: 48, rotation: -62, color: JELLY_COLORS[1], count: 4 },
+    { visualKind: 'blob', x: 220, y: 198, width: 112, height: 76, rotation: 20, color: JELLY_COLORS[3], count: 3 },
+    { visualKind: 'blob', x: 46, y: 320, width: 122, height: 80, rotation: -18, color: JELLY_COLORS[4], count: 3 },
+  ],
+  [
+    { visualKind: 'blob', x: 58, y: 125, width: 290, height: 285, rotation: 18, color: JELLY_COLORS[5], count: 10 },
+    { visualKind: 'blob', x: 112, y: 165, width: 120, height: 92, rotation: 34, color: JELLY_COLORS[4], count: 3 },
+    { visualKind: 'blob', x: 218, y: 180, width: 132, height: 102, rotation: -22, color: JELLY_COLORS[3], count: 3 },
+    { visualKind: 'tube', x: 78, y: 380, width: 245, height: 48, rotation: 44, color: JELLY_COLORS[1], count: 4 },
+    { visualKind: 'tube', x: 160, y: 422, width: 180, height: 48, rotation: -52, color: JELLY_COLORS[1], count: 3 },
+  ],
+  [
+    { visualKind: 'ring', x: 18, y: 132, width: 342, height: 342, rotation: 10, color: 'rgba(255, 224, 122, 0.56)', strokeWidth: 50, count: 14 },
+    { visualKind: 'tube', x: 80, y: 165, width: 255, height: 48, rotation: -70, color: JELLY_COLORS[1], count: 4 },
+    { visualKind: 'tube', x: 60, y: 285, width: 260, height: 48, rotation: 38, color: JELLY_COLORS[1], count: 4 },
+    { visualKind: 'blob', x: 205, y: 240, width: 130, height: 86, rotation: 18, color: JELLY_COLORS[2], count: 3 },
+  ],
 ];
 
 // ============================================================
@@ -236,8 +308,7 @@ const TILE_SIZES = [
  * @param targetColors 目前的收集目標顏色，用來提升這些顏色出現的機率
  */
 export function generateLayer(layerIndex: number, targetColors?: number[]): Tile[] {
-  // 增加每層板塊數量到 10~16 個
-  const tileCount = randInt(10, 16);
+  const layout = PROTOTYPE_LAYOUTS[layerIndex % PROTOTYPE_LAYOUTS.length];
   const tiles: Tile[] = [];
 
   // 建立顏色池：目標色佔絕大多數，並加入 1~2 種非目標色作為備用
@@ -269,51 +340,31 @@ export function generateLayer(layerIndex: number, targetColors?: number[]): Tile
     attempts++;
   }
 
-  // 已放置板塊的中心點（鬆散碰撞檢測）
-  const placedCenters: { cx: number; cy: number }[] = [];
-
-  for (let i = 0; i < tileCount; i++) {
-    const sizeClass = TILE_SIZES[Math.floor(Math.random() * TILE_SIZES.length)];
-    const tileW = randInt(sizeClass.minW, sizeClass.maxW);
-    const tileH = randInt(sizeClass.minH, sizeClass.maxH);
-
-    // 隨機位置，允許部分超出盤面邊緣
-    let x: number, y: number;
-    let attempts = 0;
-    const minSpacing = 30;
-
-    do {
-      x = randFloat(-tileW * 0.15, BOARD_WIDTH - tileW * 0.85);
-      y = randFloat(-tileH * 0.15, BOARD_HEIGHT - tileH * 0.85);
-      attempts++;
-
-      const cx = x + tileW / 2;
-      const cy = y + tileH / 2;
-      const tooClose = placedCenters.some(
-        (p) => Math.hypot(p.cx - cx, p.cy - cy) < minSpacing
-      );
-      if (!tooClose || attempts > 60) break;
-    } while (true);
-
-    placedCenters.push({ cx: x + tileW / 2, cy: y + tileH / 2 });
-
-    // 隨機選擇形狀
+  for (const spec of layout) {
     const shape = pickRandomShape();
-
-    // 旋轉角度 ±90°
-    const rotation = randFloat(-90, 90);
 
     tiles.push({
       id: uid('tile'),
-      x,
-      y,
-      width: tileW,
-      height: tileH,
+      x: spec.x + randFloat(-8, 8),
+      y: spec.y + randFloat(-8, 8),
+      width: spec.width,
+      height: spec.height,
       layer: layerIndex,
-      emotions: generateEmotions(tileW, tileH, colorPool, shape.safeZone),
-      borderRadius: shape.borderRadius,
-      clipPath: shape.clipPath,
-      rotation,
+      emotions: generateEmotions(
+        spec.width,
+        spec.height,
+        colorPool,
+        shape.safeZone,
+        spec.visualKind,
+        spec.count,
+        spec.strokeWidth
+      ),
+      borderRadius: spec.visualKind === 'tube' ? '999px' : shape.borderRadius,
+      clipPath: spec.visualKind === 'blob' ? shape.clipPath : undefined,
+      rotation: spec.rotation + randFloat(-6, 6),
+      visualKind: spec.visualKind,
+      color: spec.color,
+      strokeWidth: spec.strokeWidth,
     });
   }
 

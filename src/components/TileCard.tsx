@@ -25,6 +25,39 @@ const LAYER_STYLES: { bg: string; opacity: number; blur: number }[] = [
   { bg: 'rgba(220, 200, 240, 0.95)', opacity: 1, blur: 10 },
 ];
 
+function closestAngle(target: number, reference: number): number {
+  let adjusted = target;
+  while (adjusted - reference > 180) adjusted -= 360;
+  while (adjusted - reference < -180) adjusted += 360;
+  return adjusted;
+}
+
+function getPinnedPose(
+  tile: TileType,
+  pin: { offsetX: number; offsetY: number },
+  boardRotation: number,
+  referenceRotation: number
+) {
+  const cx = tile.width / 2;
+  const cy = tile.height / 2;
+  const dx = cx - pin.offsetX;
+  const dy = cy - pin.offsetY;
+  const originalRotationRad = (tile.rotation * Math.PI) / 180;
+  const rotatedPinFromCenter = {
+    x: Math.cos(originalRotationRad) * (pin.offsetX - cx) -
+      Math.sin(originalRotationRad) * (pin.offsetY - cy),
+    y: Math.sin(originalRotationRad) * (pin.offsetX - cx) +
+      Math.cos(originalRotationRad) * (pin.offsetY - cy),
+  };
+  const rawRotation = Math.atan2(dx, dy) * (180 / Math.PI) - boardRotation;
+
+  return {
+    x: tile.x + cx + rotatedPinFromCenter.x - pin.offsetX,
+    y: tile.y + cy + rotatedPinFromCenter.y - pin.offsetY,
+    rotation: closestAngle(rawRotation, referenceRotation),
+  };
+}
+
 const TileCard: React.FC<TileCardProps> = React.memo(
   ({ tile, allTiles, onEmotionClick, boardRotation = 0 }) => {
     // 檢查剩餘的泡泡數量與狀態
@@ -38,6 +71,8 @@ const TileCard: React.FC<TileCardProps> = React.memo(
 
     // 鎖定掉落時的隨機旋轉方向，避免每次 re-render 時值改變導致閃爍
     const fallDirectionRef = React.useRef<number>(Math.random() > 0.5 ? 90 : -90);
+    const lastPinnedPoseRef = React.useRef<{ x: number; y: number; rotation: number } | null>(null);
+    const lastRotationRef = React.useRef(tile.rotation);
 
     React.useEffect(() => {
       if (isFalling) {
@@ -52,10 +87,14 @@ const TileCard: React.FC<TileCardProps> = React.memo(
 
     const layerStyle = LAYER_STYLES[tile.layer % LAYER_STYLES.length];
     const hasClipPath = !!tile.clipPath;
+    const visualKind = tile.visualKind ?? 'blob';
+    const tileColor = tile.color ?? layerStyle.bg;
 
     // 如果只剩下一個泡泡，將旋轉中心設定為該泡泡的中心點，並讓它受到「重力」影響垂下
     let customOrigin = 'center center';
     let gravityRotation = tile.rotation;
+    let renderX = tile.x;
+    let renderY = tile.y;
 
     if (activeCount === 1) {
       const lastEmotion = activeEmotions[0];
@@ -66,15 +105,12 @@ const TileCard: React.FC<TileCardProps> = React.memo(
       // 物理模擬：計算需要的旋轉角度，使板塊中心掛在圖釘（泡泡）的「螢幕正下方」
       // NOTE: 由於板塊是 game-board 的子元素，game-board 被旋轉了 boardRotation 度，
       //       所以需要減去 boardRotation 來抵銷，讓重力方向永遠指向螢幕正下方
-      const cx = tile.width / 2;
-      const cy = tile.height / 2;
-      const dx = cx - lastEmotion.offsetX;
-      const dy = cy - lastEmotion.offsetY;
-
-      // atan2(-dx, dy) 計算出使中心位於圖釘正下方所需的「總旋轉角度」
-      // 減去 boardRotation 得到板塊本身需要的旋轉角度
-      const targetTotal = Math.atan2(-dx, dy) * (180 / Math.PI);
-      gravityRotation = targetTotal - boardRotation;
+      const pinnedPose = getPinnedPose(tile, lastEmotion, boardRotation, lastRotationRef.current);
+      renderX = pinnedPose.x;
+      renderY = pinnedPose.y;
+      gravityRotation = pinnedPose.rotation;
+      lastPinnedPoseRef.current = pinnedPose;
+      lastRotationRef.current = gravityRotation;
     }
 
     // 計算掉落方向：將螢幕正下方 (0, 1) 轉換到 game-board 的本地座標系
@@ -84,19 +120,24 @@ const TileCard: React.FC<TileCardProps> = React.memo(
     const fallDistance = 400;
     const fallDeltaX = Math.sin(boardRotRad) * fallDistance;
     const fallDeltaY = Math.cos(boardRotRad) * fallDistance;
+    const fallStartPose =
+      lastPinnedPoseRef.current ??
+      (tile.fallAnchor
+        ? getPinnedPose(tile, tile.fallAnchor, boardRotation, lastRotationRef.current)
+        : { x: tile.x, y: tile.y, rotation: closestAngle(tile.rotation, lastRotationRef.current) });
 
     return (
       <div
-        className={`tile-card ${isFalling ? 'falling' : ''}`}
+        className={`tile-card tile-${visualKind} ${isFalling ? 'falling' : ''}`}
         style={{
           position: 'absolute',
-          left: isFalling ? tile.x + fallDeltaX : tile.x,
-          top: isFalling ? tile.y + fallDeltaY : tile.y,
+          left: isFalling ? fallStartPose.x + fallDeltaX : renderX,
+          top: isFalling ? fallStartPose.y + fallDeltaY : renderY,
           width: tile.width,
           height: tile.height,
           zIndex: tile.layer * 10,
           transform: isFalling
-            ? `rotate(${tile.rotation + fallDirectionRef.current}deg) scale(0.8)`
+            ? `rotate(${fallStartPose.rotation + fallDirectionRef.current}deg) scale(0.8)`
             : `rotate(${gravityRotation}deg)`,
           transformOrigin: customOrigin,
           opacity: isFalling ? 0 : layerStyle.opacity,
@@ -117,17 +158,21 @@ const TileCard: React.FC<TileCardProps> = React.memo(
           style={{
             position: 'absolute',
             inset: 0,
-            backgroundColor: layerStyle.bg,
+            backgroundColor: visualKind === 'ring' ? 'transparent' : tileColor,
             backdropFilter: `blur(${layerStyle.blur}px)`,
             WebkitBackdropFilter: `blur(${layerStyle.blur}px)`,
             // 根據形狀類型選擇渲染方式
-            borderRadius: hasClipPath ? '0' : tile.borderRadius,
+            borderRadius: visualKind === 'ring' ? '50%' : hasClipPath ? '0' : tile.borderRadius,
             clipPath: tile.clipPath || undefined,
-            border: hasClipPath ? 'none' : '1px solid rgba(255, 255, 255, 0.35)',
+            border: visualKind === 'ring'
+              ? `${tile.strokeWidth ?? 48}px solid ${tileColor}`
+              : hasClipPath ? 'none' : '1px solid rgba(255, 255, 255, 0.35)',
             boxShadow: hasClipPath
               ? 'none'
-              : `0 4px 16px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04),
-                 inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -1px 0 rgba(0,0,0,0.03)`,
+              : visualKind === 'ring'
+                ? `0 12px 28px rgba(60, 100, 125, 0.14), inset 0 0 20px rgba(255,255,255,0.45)`
+                : `0 6px 18px rgba(66, 118, 135, 0.12), 0 1px 3px rgba(0,0,0,0.04),
+                   inset 0 2px 0 rgba(255,255,255,0.55), inset 0 -8px 18px rgba(80,130,160,0.08)`,
             overflow: 'hidden',
           }}
         >

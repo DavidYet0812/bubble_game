@@ -22,7 +22,7 @@ export const TARGET_COUNT = 3;
 export const INITIAL_SHUFFLES = 3;
 
 /** 臨時整理區初始容量 */
-export const STAGING_CAPACITY = 7;
+export const STAGING_CAPACITY = 5;
 
 /** 同時可見的最大層數 */
 export const MAX_VISIBLE_LAYERS = 3;
@@ -45,8 +45,8 @@ export const TILE_SIZE = {
 };
 
 /** 盤面尺寸 */
-export const BOARD_WIDTH = 340;
-export const BOARD_HEIGHT = 420;
+export const BOARD_WIDTH = 392;
+export const BOARD_HEIGHT = 560;
 
 /**
  * 8 種情緒顏色定義
@@ -54,14 +54,14 @@ export const BOARD_HEIGHT = 420;
  *       移除了容易混淆的相近色（如蜜桃/玫瑰、薄荷/湖水、向日葵/琥珀）
  */
 export const EMOTION_COLORS: { name: string; color: string; glow: string; face: string }[] = [
-  { name: '草莓', color: '#FF6B6B', glow: '#E04040', face: '◕‿◕' },
-  { name: '柑橘', color: '#FFA502', glow: '#D48900', face: '◕ω◕' },
-  { name: '檸檬', color: '#FFEAA7', glow: '#E8D060', face: '◕‿◕' },
-  { name: '薄荷', color: '#55E6C1', glow: '#30B88C', face: '◕﹏◕' },
-  { name: '天空', color: '#54A0FF', glow: '#2E86DE', face: '◕‿◕' },
-  { name: '葡萄', color: '#A55EEA', glow: '#8038C7', face: '◕ᴗ◕' },
-  { name: '蜜桃', color: '#FF9FF3', glow: '#D06EB8', face: '◕‿◕' },
-  { name: '雲朵', color: '#C8D6E5', glow: '#9AACBD', face: '◕‿◕' },
+  { name: '藍露', color: '#8fdcff', glow: '#45a7da', face: '˘ᵕ˘' },
+  { name: '橘光', color: '#ffb25f', glow: '#e47a2c', face: '˃ᴗ˂' },
+  { name: '星紫', color: '#b9a3ff', glow: '#7c63d8', face: '✦ᴗ✦' },
+  { name: '青綠', color: '#5ee7cc', glow: '#27a992', face: '•‿•' },
+  { name: '嫩綠', color: '#a8dd55', glow: '#73a832', face: '•̀ᴗ•́' },
+  { name: '粉桃', color: '#ff94dc', glow: '#cf55aa', face: '◕‿◕' },
+  { name: '月白', color: '#d9ecff', glow: '#8eb7d5', face: '◡‿◡' },
+  { name: '海鹽', color: '#76b7ff', glow: '#3d82d0', face: '◕ᴗ◕' },
 ];
 
 /** 情緒顏色數量 */

@@ -30,6 +30,17 @@ export interface Tile {
   clipPath?: string;
   /** 隨機旋轉角度（度） */
   rotation: number;
+  /** 視覺樣式類型，用於接近原型的環形/管狀/果凍板塊 */
+  visualKind?: 'blob' | 'ring' | 'tube';
+  /** 板塊主色 */
+  color?: string;
+  /** 管狀或環形板塊厚度 */
+  strokeWidth?: number;
+  /** 最後被點掉的泡泡位置，用於清空板塊時從正確支點掉落 */
+  fallAnchor?: {
+    offsetX: number;
+    offsetY: number;
+  };
 }
 
 /** 收集目標泡泡 */
@@ -46,6 +57,21 @@ export interface CollectionTarget {
 export interface StagedEmotion {
   id: string;
   colorIndex: number;
+}
+
+/** 目標完成時的短暫覆蓋動畫 */
+export interface CompletedTargetEffect {
+  id: string;
+  colorIndex: number;
+  slotIndex: number;
+}
+
+/** 泡泡被收集時的流光動畫 */
+export interface CollectEffect {
+  id: string;
+  colorIndex: number;
+  destination: 'target' | 'staging';
+  slotIndex: number;
 }
 
 /** 遊戲狀態 */
@@ -67,6 +93,9 @@ export interface GameState {
   nextLayerIndex: number;
   /** 臨時訊息（如「獲得額外空位」） */
   message: string | null;
+  completedTargetEffects: CompletedTargetEffect[];
+  collectEffects: CollectEffect[];
+  isPaused: boolean;
 }
 
 /** Reducer Action 類型 */
@@ -75,5 +104,9 @@ export type GameAction =
   | { type: 'CLICK_EMOTION'; tileId: string; emotionId: string }
   | { type: 'TICK' }
   | { type: 'SHUFFLE' }
+  | { type: 'TOGGLE_PAUSE' }
+  | { type: 'SET_PAUSED'; paused: boolean }
   | { type: 'CLEAR_MESSAGE' }
+  | { type: 'CLEAR_COMPLETED_TARGET_EFFECT'; id: string }
+  | { type: 'CLEAR_COLLECT_EFFECT'; id: string }
   | { type: 'ADD_TIME'; amount: number };

@@ -15,12 +15,10 @@ import {
 import { generateInitialBoard, generateLayer, shuffleEmotions } from '../utils/board-generator';
 import {
   isEmotionCovered,
-  isLayerCleared,
   findMatchingTarget,
   autoCollectFromStaging,
   generateTarget,
   generateInitialTargets,
-  getTopLayer,
   getAvailableBoardColors,
 } from '../utils/game-logic';
 
@@ -38,7 +36,14 @@ function createInitialState(): GameState {
     gameStatus: 'idle',
     nextLayerIndex: 0,
     message: null,
+    completedTargetEffects: [],
+    collectEffects: [],
+    isPaused: false,
   };
+}
+
+function effectId(prefix: string): string {
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 }
 
 /**
@@ -78,8 +83,22 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, message: null };
     }
 
+    case 'CLEAR_COMPLETED_TARGET_EFFECT': {
+      return {
+        ...state,
+        completedTargetEffects: state.completedTargetEffects.filter((effect) => effect.id !== action.id),
+      };
+    }
+
+    case 'CLEAR_COLLECT_EFFECT': {
+      return {
+        ...state,
+        collectEffects: state.collectEffects.filter((effect) => effect.id !== action.id),
+      };
+    }
+
     case 'SHUFFLE': {
-      if (state.gameStatus !== 'playing' || state.shufflesRemaining <= 0) return state;
+      if (state.gameStatus !== 'playing' || state.isPaused || state.shufflesRemaining <= 0) return state;
       return {
         ...state,
         tiles: shuffleEmotions(state.tiles),
@@ -87,8 +106,18 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
 
-    case 'CLICK_EMOTION': {
+    case 'TOGGLE_PAUSE': {
       if (state.gameStatus !== 'playing') return state;
+      return { ...state, isPaused: !state.isPaused };
+    }
+
+    case 'SET_PAUSED': {
+      if (state.gameStatus !== 'playing') return state;
+      return { ...state, isPaused: action.paused };
+    }
+
+    case 'CLICK_EMOTION': {
+      if (state.gameStatus !== 'playing' || state.isPaused) return state;
 
       const { tileId, emotionId } = action;
 
@@ -109,6 +138,10 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         if (i !== tileIdx) return t;
         return {
           ...t,
+          fallAnchor: {
+            offsetX: emotion.offsetX,
+            offsetY: emotion.offsetY,
+          },
           emotions: t.emotions.map((e, j) =>
             j === emoIdx ? { ...e, removed: true } : e
           ),
@@ -122,11 +155,19 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       let newMessage = state.message;
       let newExtraSlotUsed = state.extraSlotUsed;
       let newStagingCapacity = state.stagingCapacity;
+      const newCompletedEffects = [...state.completedTargetEffects];
+      const newCollectEffects = [...state.collectEffects];
       let gameStatus: GameState['gameStatus'] = 'playing';
 
       // 嘗試匹配收集目標
       const matchIdx = findMatchingTarget(emotion.colorIndex, newTargets);
       if (matchIdx >= 0) {
+        newCollectEffects.push({
+          id: effectId('collect'),
+          colorIndex: emotion.colorIndex,
+          destination: 'target',
+          slotIndex: matchIdx,
+        });
         newTargets[matchIdx] = {
           ...newTargets[matchIdx],
           collected: newTargets[matchIdx].collected + 1,
@@ -134,6 +175,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
         // 檢查目標是否完成
         if (newTargets[matchIdx].collected >= EMOTIONS_PER_TARGET) {
+          newCompletedEffects.push({
+            id: effectId('complete'),
+            colorIndex: newTargets[matchIdx].colorIndex,
+            slotIndex: matchIdx,
+          });
           newScore += SCORE_PER_TARGET;
           newTime += TIME_BONUS;
 
@@ -163,6 +209,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
               (t) => t.collected >= EMOTIONS_PER_TARGET
             );
             if (completedIdx === -1) break;
+            newCompletedEffects.push({
+              id: effectId('complete'),
+              colorIndex: newTargets[completedIdx].colorIndex,
+              slotIndex: completedIdx,
+            });
             newScore += SCORE_PER_TARGET;
             newTime += TIME_BONUS;
             if (newTargets[completedIdx].hasTimeBonus) {
@@ -185,6 +236,12 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           id: emotion.id,
           colorIndex: emotion.colorIndex,
         });
+        newCollectEffects.push({
+          id: effectId('collect'),
+          colorIndex: emotion.colorIndex,
+          destination: 'staging',
+          slotIndex: newStaging.length - 1,
+        });
 
         // 放入整理區後，立即嘗試自動收集（整理區中同色泡泡可能已湊齊目標）
         const autoResult = autoCollectFromStaging(newStaging, newTargets);
@@ -198,6 +255,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
             (t) => t.collected >= EMOTIONS_PER_TARGET
           );
           if (completedIdx === -1) break;
+          newCompletedEffects.push({
+            id: effectId('complete'),
+            colorIndex: newTargets[completedIdx].colorIndex,
+            slotIndex: completedIdx,
+          });
           newScore += SCORE_PER_TARGET;
           newTime += TIME_BONUS;
           if (newTargets[completedIdx].hasTimeBonus) {
@@ -232,15 +294,6 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       let finalTiles = newTiles;
       let nextLayerIdx = state.nextLayerIndex;
 
-      // 取得目前最高活躍層
-      const topLayer = getTopLayer(finalTiles);
-      if (topLayer >= 0 && isLayerCleared(finalTiles, topLayer)) {
-        // 移除已清空的板塊
-        finalTiles = finalTiles.filter(
-          (t) => t.layer !== topLayer || !t.emotions.every((e) => e.removed)
-        );
-      }
-
       // 如果活躍層數不足，補充新層
       const activeLayers = new Set(
         finalTiles.filter((t) => !t.emotions.every((e) => e.removed)).map((t) => t.layer)
@@ -257,6 +310,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         tiles: finalTiles,
         collectionTargets: newTargets,
         stagingArea: newStaging,
+        completedTargetEffects: newCompletedEffects,
+        collectEffects: newCollectEffects,
         score: newScore,
         timeRemaining: newTime,
         extraSlotUsed: newExtraSlotUsed,
@@ -282,7 +337,7 @@ export function useGameState() {
 
   // 計時器管理
   useEffect(() => {
-    if (state.gameStatus === 'playing') {
+    if (state.gameStatus === 'playing' && !state.isPaused) {
       timerRef.current = window.setInterval(() => {
         dispatch({ type: 'TICK' });
       }, 1000);
@@ -294,7 +349,7 @@ export function useGameState() {
         timerRef.current = null;
       }
     };
-  }, [state.gameStatus]);
+  }, [state.gameStatus, state.isPaused]);
 
   // 自動清除訊息
   useEffect(() => {
@@ -304,6 +359,29 @@ export function useGameState() {
     }
   }, [state.message]);
 
+  // 清除短暫動畫資料
+  useEffect(() => {
+    if (state.completedTargetEffects.length === 0) return;
+    const timers = state.completedTargetEffects.map((effect) =>
+      window.setTimeout(
+        () => dispatch({ type: 'CLEAR_COMPLETED_TARGET_EFFECT', id: effect.id }),
+        720
+      )
+    );
+    return () => timers.forEach(clearTimeout);
+  }, [state.completedTargetEffects]);
+
+  useEffect(() => {
+    if (state.collectEffects.length === 0) return;
+    const timers = state.collectEffects.map((effect) =>
+      window.setTimeout(
+        () => dispatch({ type: 'CLEAR_COLLECT_EFFECT', id: effect.id }),
+        620
+      )
+    );
+    return () => timers.forEach(clearTimeout);
+  }, [state.collectEffects]);
+
   const startGame = useCallback(() => dispatch({ type: 'START_GAME' }), []);
   const clickEmotion = useCallback(
     (tileId: string, emotionId: string) =>
@@ -311,6 +389,8 @@ export function useGameState() {
     []
   );
   const shuffle = useCallback(() => dispatch({ type: 'SHUFFLE' }), []);
+  const togglePause = useCallback(() => dispatch({ type: 'TOGGLE_PAUSE' }), []);
+  const setPaused = useCallback((paused: boolean) => dispatch({ type: 'SET_PAUSED', paused }), []);
 
-  return { state, startGame, clickEmotion, shuffle };
+  return { state, startGame, clickEmotion, shuffle, togglePause, setPaused };
 }

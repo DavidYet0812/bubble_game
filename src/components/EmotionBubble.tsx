@@ -50,8 +50,6 @@ function CuteFace({ covered }: { covered: boolean }) {
 
 const EmotionBubble: React.FC<EmotionBubbleProps> = React.memo(
   ({ emotion, ownerTile, allTiles, onClick, boardRotation = 0 }) => {
-    if (emotion.removed) return null;
-
     const covered = isEmotionCovered(emotion, ownerTile, allTiles);
     const colorDef = EMOTION_COLORS[emotion.colorIndex];
     const size = EMOTION_RADIUS * 2;
@@ -62,6 +60,8 @@ const EmotionBubble: React.FC<EmotionBubbleProps> = React.memo(
         onClick(ownerTile.id, emotion.id);
       }
     }, [covered, ownerTile.id, emotion.id, emotion.colorIndex, onClick]);
+
+    if (emotion.removed) return null;
 
     // 額外的觸控熱區大小（像素）
     const touchPadding = 6;

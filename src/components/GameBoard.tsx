@@ -17,6 +17,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ tiles, onEmotionClick }) => {
   const sortedTiles = [...tiles].sort((a, b) => a.layer - b.layer);
 
   const [boardRotation, setBoardRotation] = React.useState(0);
+  const [dragging, setDragging] = React.useState(false);
   const isDragging = React.useRef(false);
   const lastMousePos = React.useRef<{ x: number; y: number } | null>(null);
   const boardRef = React.useRef<HTMLDivElement>(null);
@@ -27,6 +28,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ tiles, onEmotionClick }) => {
     if ((e.target as HTMLElement).closest('.emotion-bubble')) return;
     
     isDragging.current = true;
+    setDragging(true);
     lastMousePos.current = { x: e.clientX, y: e.clientY };
     // 鎖定滑鼠，防止游標跑出區域時中斷拖曳
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -64,6 +66,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ tiles, onEmotionClick }) => {
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     if (isDragging.current) {
       isDragging.current = false;
+      setDragging(false);
       lastMousePos.current = null;
       e.currentTarget.releasePointerCapture(e.pointerId);
     }
@@ -80,7 +83,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ tiles, onEmotionClick }) => {
           position: 'relative',
           transform: `rotate(${boardRotation}deg)`,
           transformOrigin: 'center center',
-          cursor: isDragging.current ? 'grabbing' : 'grab',
+          cursor: dragging ? 'grabbing' : 'grab',
           touchAction: 'none', // 防止移動端滾動干擾
         }}
         onPointerDown={handlePointerDown}

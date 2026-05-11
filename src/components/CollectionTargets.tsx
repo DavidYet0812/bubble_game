@@ -4,14 +4,20 @@
  *       獎勵目標會在左上角顯示 ⏰ 圖示
  */
 import React from 'react';
-import type { CollectionTarget } from '../types/game';
+import type { CollectionTarget, CollectEffect, CompletedTargetEffect } from '../types/game';
 import { EMOTION_COLORS, EMOTIONS_PER_TARGET } from '../utils/constants';
 
 interface CollectionTargetsProps {
   targets: CollectionTarget[];
+  completedEffects: CompletedTargetEffect[];
+  collectEffects: CollectEffect[];
 }
 
-const CollectionTargets: React.FC<CollectionTargetsProps> = ({ targets }) => {
+const CollectionTargets: React.FC<CollectionTargetsProps> = ({
+  targets,
+  completedEffects,
+  collectEffects,
+}) => {
   return (
     <div className="collection-targets">
       {targets.map((target) => {
@@ -27,7 +33,20 @@ const CollectionTargets: React.FC<CollectionTargetsProps> = ({ targets }) => {
               borderColor: `${colorDef.color}aa`,
               boxShadow: `0 2px 12px ${colorDef.glow}33`,
             }}
-          >
+            >
+            {collectEffects
+              .filter((effect) => effect.destination === 'target' && effect.slotIndex === targets.indexOf(target))
+              .map((effect) => {
+                const effectColor = EMOTION_COLORS[effect.colorIndex];
+                return (
+                  <span
+                    key={effect.id}
+                    className="collect-stream target-stream"
+                    style={{ background: `linear-gradient(90deg, transparent, ${effectColor.color}, white, transparent)` }}
+                  />
+                );
+              })}
+
             {/* 獎勵目標提示符號 */}
             {target.hasTimeBonus && (
               <div
@@ -61,7 +80,7 @@ const CollectionTargets: React.FC<CollectionTargetsProps> = ({ targets }) => {
                   className={`target-dot ${i < target.collected ? 'filled' : ''}`}
                   style={{
                     backgroundColor:
-                      i < target.collected ? colorDef.color : 'rgba(255,255,255,0.3)',
+                      i < target.collected ? colorDef.color : '#6f8286',
                     boxShadow:
                       i < target.collected
                         ? `0 0 6px ${colorDef.glow}88`
@@ -80,6 +99,37 @@ const CollectionTargets: React.FC<CollectionTargetsProps> = ({ targets }) => {
             >
               {colorDef.name}
             </span>
+          </div>
+        );
+      })}
+      {completedEffects.map((effect) => {
+        const colorDef = EMOTION_COLORS[effect.colorIndex];
+        return (
+          <div
+            key={effect.id}
+            className="target-complete-effect"
+            style={{
+              left: effect.slotIndex === 0 ? 2 : effect.slotIndex === 1 ? '50%' : 'calc(100% - 118px)',
+              top: effect.slotIndex === 1 ? -6 : 2,
+              transform: effect.slotIndex === 1 ? 'translateX(-50%)' : undefined,
+              background: `linear-gradient(135deg, ${colorDef.color}aa, ${colorDef.color}55)`,
+              borderColor: `${colorDef.color}dd`,
+              boxShadow: `0 0 22px ${colorDef.glow}77`,
+            }}
+          >
+            <div className="target-dots">
+              {Array.from({ length: EMOTIONS_PER_TARGET }).map((_, i) => (
+                <div
+                  key={i}
+                  className="target-dot filled"
+                  style={{
+                    backgroundColor: colorDef.color,
+                    border: `1px solid ${colorDef.glow}`,
+                    boxShadow: `0 0 8px ${colorDef.glow}aa`,
+                  }}
+                />
+              ))}
+            </div>
           </div>
         );
       })}
