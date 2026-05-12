@@ -307,8 +307,12 @@ const PROTOTYPE_LAYOUTS: PrototypeTileSpec[][] = [
  * NOTE: 位置完全隨機，大小亂數，形狀多樣，旋轉 ±90°
  * @param targetColors 目前的收集目標顏色，用來提升這些顏色出現的機率
  */
-export function generateLayer(layerIndex: number, targetColors?: number[]): Tile[] {
-  const layout = PROTOTYPE_LAYOUTS[layerIndex % PROTOTYPE_LAYOUTS.length];
+export function generateLayer(
+  layerIndex: number,
+  targetColors?: number[],
+  generation = layerIndex
+): Tile[] {
+  const layout = PROTOTYPE_LAYOUTS[generation % PROTOTYPE_LAYOUTS.length];
   const tiles: Tile[] = [];
 
   // 建立顏色池：目標色佔絕大多數，並加入 1~2 種非目標色作為備用
@@ -350,6 +354,7 @@ export function generateLayer(layerIndex: number, targetColors?: number[]): Tile
       width: spec.width,
       height: spec.height,
       layer: layerIndex,
+      generation,
       emotions: generateEmotions(
         spec.width,
         spec.height,
@@ -377,10 +382,10 @@ export function generateLayer(layerIndex: number, targetColors?: number[]): Tile
  */
 export function generateInitialBoard(targetColors: number[]): { tiles: Tile[]; nextLayerIndex: number } {
   const allTiles: Tile[] = [];
-  for (let i = 0; i < 3; i++) {
-    allTiles.push(...generateLayer(i, targetColors));
+  for (let i = 0; i < 2; i++) {
+    allTiles.push(...generateLayer(i, targetColors, i));
   }
-  return { tiles: allTiles, nextLayerIndex: 3 };
+  return { tiles: allTiles, nextLayerIndex: 2 };
 }
 
 /**

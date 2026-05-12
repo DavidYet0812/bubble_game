@@ -294,15 +294,20 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       let finalTiles = newTiles;
       let nextLayerIdx = state.nextLayerIndex;
 
-      // 如果活躍層數不足，補充新層
+      // 固定保留兩個可操作層槽位；哪個層槽位清空，就在該槽位補下一批板塊。
       const activeLayers = new Set(
         finalTiles.filter((t) => !t.emotions.every((e) => e.removed)).map((t) => t.layer)
       );
-      if (activeLayers.size < 3 && gameStatus === 'playing') {
+      if (activeLayers.size < 2 && gameStatus === 'playing') {
         const targetColors = newTargets.map((t) => t.colorIndex);
-        const newLayerTiles = generateLayer(nextLayerIdx, targetColors);
-        finalTiles = [...finalTiles, ...newLayerTiles];
-        nextLayerIdx++;
+        for (const layerSlot of [0, 1]) {
+          if (!activeLayers.has(layerSlot)) {
+            const newLayerTiles = generateLayer(layerSlot, targetColors, nextLayerIdx);
+            finalTiles = [...finalTiles, ...newLayerTiles];
+            activeLayers.add(layerSlot);
+            nextLayerIdx++;
+          }
+        }
       }
 
       return {

@@ -6,10 +6,9 @@ import type { Tile, Emotion, CollectionTarget, StagedEmotion } from '../types/ga
 import { COLOR_COUNT, EMOTIONS_PER_TARGET } from './constants';
 
 /**
- * 判斷某個情緒是否被上層遮擋（雙層分組制）
- * NOTE: 每兩層為一組（第1-2層、第3-4層...），同組內的板塊可同時操作。
- *       只有上面那組全部清除後，才能操作下面那組的板塊。
- *       例如：第3-4層消除完 → 第1-2層可操作
+ * 判斷某個情緒是否被上層遮擋
+ * NOTE: 目前規則是只保留兩個可操作層槽位，兩層都能直接點擊。
+ *       新生成的板塊會補進剛清空的層槽位，因此不再用「兩層一組」阻擋玩家。
  */
 export function isEmotionCovered(
   emotion: Emotion,
@@ -17,17 +16,9 @@ export function isEmotionCovered(
   allTiles: Tile[]
 ): boolean {
   if (emotion.removed) return true;
-
-  // 計算此板塊所在的分組（每兩層一組：0-1 = 組0, 2-3 = 組1, 4-5 = 組2...）
-  const myGroup = Math.floor(ownerTile.layer / 2);
-
-  // 檢查是否有更高分組的板塊尚未清除
-  return allTiles.some((tile) => {
-    const tileGroup = Math.floor(tile.layer / 2);
-    if (tileGroup <= myGroup) return false;
-    // 該板塊是否仍有未移除的情緒
-    return tile.emotions.some((e) => !e.removed);
-  });
+  void ownerTile;
+  void allTiles;
+  return false;
 }
 
 /**

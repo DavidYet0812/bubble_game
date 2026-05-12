@@ -23,6 +23,8 @@ export interface Tile {
   height: number;
   /** 層級，數字越大越靠上（可被點擊） */
   layer: number;
+  /** 實際生成批次，用於決定不同版型，但不影響前後層槽位 */
+  generation: number;
   emotions: Emotion[];
   /** CSS border-radius（用於 blob、圓形等形狀） */
   borderRadius: string;
